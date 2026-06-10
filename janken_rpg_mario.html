@@ -706,7 +706,6 @@
 </head>
 <body>
 
-<!-- WORLD BACKGROUND -->
 <div class="world-bg">
   <div class="cloud c1"></div>
   <div class="cloud c2"></div>
@@ -716,22 +715,18 @@
 </div>
 <div class="ground-strip"></div>
 
-<!-- ======== TITLE SCREEN ======== -->
 <div class="screen active" id="titleScreen">
   <div class="title-logo">
     <div class="sub">★ PIXEL ADVENTURE ★</div>
     <div class="mario-castle-deco">
       <svg viewBox="0 0 120 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <!-- castle -->
         <rect x="10" y="40" width="100" height="60" fill="#c84c0c"/>
         <rect x="10" y="40" width="20" height="20" fill="#a83a00"/>
         <rect x="50" y="40" width="20" height="20" fill="#a83a00"/>
         <rect x="90" y="40" width="20" height="20" fill="#a83a00"/>
         <rect x="44" y="60" width="32" height="40" fill="#8b3a00"/>
-        <!-- flag -->
         <line x1="60" y1="0" x2="60" y2="40" stroke="#fff" stroke-width="3"/>
         <polygon points="62,2 80,12 62,22" fill="#e52222"/>
-        <!-- stars -->
         <text x="20" y="88" font-size="14" fill="#ffd700">★</text>
         <text x="82" y="88" font-size="14" fill="#ffd700">★</text>
       </svg>
@@ -742,28 +737,23 @@
   <button class="btn-start" onclick="showScreen('selectScreen')">▶ START GAME</button>
 </div>
 
-<!-- ======== CHARACTER SELECT SCREEN ======== -->
 <div class="screen" id="selectScreen">
   <div class="select-title">★ SELECT YOUR CHARACTER ★</div>
   <div class="char-grid" id="charGrid"></div>
   <button class="btn-start" id="confirmCharBtn" disabled onclick="confirmChar()">▶ DECIDE!</button>
 </div>
 
-<!-- ======== GAME SCREEN ======== -->
 <div class="screen" id="gameScreen">
   <div class="game-inner">
 
-    <!-- TOP BAR -->
     <div class="topbar">
       <div class="score-block">SCORE<span id="scoreVal">0</span></div>
       <div class="stage-block">STAGE<span id="stageLabel">1</span></div>
       <button class="btn-stat" onclick="openStatModal()">📊 STAT</button>
     </div>
 
-    <!-- STAGE PROGRESS -->
     <div class="stage-progress" id="stageProgress"></div>
 
-    <!-- ENEMY CARD -->
     <div class="fighter-card enemy-card" id="enemyCard">
       <div class="fighter-head">
         <div>
@@ -782,13 +772,11 @@
       </div>
     </div>
 
-    <!-- CENTER -->
     <div class="center-panel">
       <div class="vs-line">VS</div>
       <div class="log-box" id="logBox">コマンドを選んでください。</div>
     </div>
 
-    <!-- PLAYER CARD -->
     <div class="fighter-card player-card" id="playerCard">
       <div class="fighter-head">
         <div>
@@ -807,7 +795,6 @@
       </div>
     </div>
 
-    <!-- ITEM BAR -->
     <div class="item-bar">
       <span class="item-label">ITEMS:</span>
       <button class="item-btn" id="itemMushroom" onclick="useItem('mushroom')">
@@ -832,7 +819,6 @@
       </button>
     </div>
 
-    <!-- BATTLE CONTROLS -->
     <div class="controls">
       <button class="choice-btn" data-hand="rock" onclick="playRound('rock')">
         <span class="btn-icon">👊</span>
@@ -854,7 +840,6 @@
   </div>
 </div>
 
-<!-- ======== STAT MODAL ======== -->
 <div class="modal-overlay" id="statModal">
   <div class="modal-box">
     <div class="modal-title">📊 STATUS</div>
@@ -864,7 +849,6 @@
   </div>
 </div>
 
-<!-- ======== RESULT OVERLAY ======== -->
 <div class="result-overlay" id="resultOverlay">
   <div class="result-title" id="resultTitle"></div>
   <div class="result-sub" id="resultSub"></div>
@@ -873,828 +857,424 @@
   <button class="btn-restart" id="btnRestart" onclick="goTitle()" style="display:none">▶ TITLE</button>
 </div>
 
-<!-- FLASH & NOTICE -->
 <div class="flash" id="flash"></div>
 <div class="notice-toast" id="notice"></div>
 
 <script>
 "use strict";
 
-// ================================================================
-// DATA
-// ================================================================
+// LINK WEB APP GOOGLE APPS SCRIPT CỦA BẠN ĐÃ ĐƯỢC GẮN VÀO ĐÂY
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxDBxZCUBJu6vWZeJ-ttM94zI7cb_WwBnxYjjFwAIsam9tvEJuwjwYg-7YLD2uiJohZdw/exec";
+
+// Hàm gửi dữ liệu lên Google Sheet
+function sendDataToGoogleSheet(status) {
+  if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL.includes("YOUR_URL_HERE")) return;
+
+  const data = {
+    name: G.selectedChar ? G.selectedChar.name : "Unknown",
+    character: G.selectedChar ? G.selectedChar.id : "None",
+    score: G.score,
+    stage: G.stage + 1,
+    status: status // "WIN" hoặc "LOSE"
+  };
+
+  console.log("Đang gửi dữ liệu lên Google Sheet...", data);
+
+  // Gửi request ngầm dạng POST (no-cors để tránh chặn bảo mật trên trình duyệt)
+  fetch(GOOGLE_SCRIPT_URL, {
+    method: "POST",
+    mode: "no-cors",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(data)
+  })
+  .then(() => console.log("Gửi dữ liệu thành công!"))
+  .catch(err => console.error("Lỗi gửi dữ liệu:", err));
+}
+
 const HANDS = {
-  rock:     { jp:"グー",     emoji:"👊", beats:"scissors" },
-  paper:    { jp:"パー",     emoji:"✋", beats:"rock"     },
-  scissors: { jp:"チョキ",   emoji:"✌️", beats:"paper"   }
+  rock: { jp:"グー", emoji:"👊", beats:"scissors" },
+  paper: { jp:"パー", emoji:"✋", beats:"rock" },
+  scissors: { jp:"チョキ", emoji:"✌️", beats:"paper" }
 };
 
 const CHARS = [
-  {
-    id: "mario",
-    name: "マリオ",
-    desc: "バランス型の万能ヒーロー",
-    maxHp: 120,
-    atk: 22,
-    def: 0,
-    luck: 10,
-    spriteKey: "mario",
-    stats: "ATK:22 / DEF:0 / LCK:10"
-  },
-  {
-    id: "luigi",
-    name: "ルイージ",
-    desc: "守備が高く粘り強い",
-    maxHp: 100,
-    atk: 18,
-    def: 5,
-    luck: 8,
-    spriteKey: "luigi",
-    stats: "ATK:18 / DEF:5 / LCK:8"
-  },
-  {
-    id: "peach",
-    name: "ピーチ姫",
-    desc: "運が高く回復が得意",
-    maxHp: 90,
-    atk: 16,
-    def: 2,
-    luck: 20,
-    spriteKey: "peach",
-    stats: "ATK:16 / DEF:2 / LCK:20"
-  },
-  {
-    id: "toad",
-    name: "キノピオ",
-    desc: "攻撃力最高の突撃型",
-    maxHp: 80,
-    atk: 28,
-    def: 0,
-    luck: 5,
-    spriteKey: "toad",
-    stats: "ATK:28 / DEF:0 / LCK:5"
-  }
+  { id: "mario", name: "マリオ", desc: "バランス型の万能ヒーロー", maxHp: 120, atk: 22, def: 0, luck: 10, spriteKey: "mario", stats: "ATK:22 / DEF:0 / LCK:10" },
+  { id: "luigi", name: "ルイージ", desc: "守備が高く粘り強い", maxHp: 100, atk: 18, def: 5, luck: 8, spriteKey: "luigi", stats: "ATK:18 / DEF:5 / LCK:8" },
+  { id: "peach", name: "ピーチ姫", desc: "運が高く回復が得意", maxHp: 90, atk: 16, def: 2, luck: 20, spriteKey: "peach", stats: "ATK:16 / DEF:2 / LCK:20" },
+  { id: "toad", name: "キノピオ", desc: "攻撃力最高の突撃型", maxHp: 80, atk: 28, def: 0, luck: 5, spriteKey: "toad", stats: "ATK:28 / DEF:0 / LCK:5" }
 ];
 
-// Enemy list: each stage uses one of these
 const ENEMY_LIST = [
-  { id:"goomba",    name:"クリボー",     tag:"NORMAL", sprite:"goomba",  maxHp:70,  atk:12, reward:100 },
-  { id:"koopa",     name:"ノコノコ",     tag:"NORMAL", sprite:"koopa",   maxHp:85,  atk:15, reward:130 },
-  { id:"piranha",   name:"パックンフラワー", tag:"NORMAL", sprite:"piranha", maxHp:90,  atk:18, reward:150 },
-  { id:"boo",       name:"テレサ",       tag:"NORMAL", sprite:"boo",     maxHp:80,  atk:20, reward:160 },
-  { id:"hammer",    name:"ハンマーブロス",tag:"STRONG", sprite:"hammer",  maxHp:110, atk:22, reward:200 },
-  { id:"lakitu",    name:"ジュゲム",     tag:"STRONG", sprite:"lakitu",  maxHp:100, atk:24, reward:220 },
-  { id:"chain",     name:"ワンワン",     tag:"STRONG", sprite:"chain",   maxHp:130, atk:26, reward:260 },
-  { id:"magikoopa", name:"カメック",     tag:"ELITE",  sprite:"magikoopa",maxHp:150, atk:28, reward:300 },
-  { id:"bowserjr",  name:"クッパJr.",    tag:"ELITE",  sprite:"bowserjr", maxHp:170, atk:30, reward:350 },
-  { id:"bowser",    name:"大魔王クッパ", tag:"BOSS",   sprite:"bowser",  maxHp:280, atk:36, reward:999 }
+  { id:"goomba", name:"クリボー", tag:"NORMAL", sprite:"goomba", maxHp:70, atk:12, reward:100 },
+  { id:"koopa", name:"ノコノコ", tag:"NORMAL", sprite:"koopa", maxHp:85, atk:15, reward:130 },
+  { id:"piranha", name:"パックンフラワー", tag:"NORMAL", sprite:"piranha", maxHp:90, atk:18, reward:150 },
+  { id:"boo", name:"テレサ", tag:"NORMAL", sprite:"boo", maxHp:80, atk:20, reward:160 },
+  { id:"hammer", name:"ハンマーブロス",tag:"STRONG", sprite:"hammer", maxHp:110, atk:22, reward:200 },
+  { id:"lakitu", name:"ジュゲム", tag:"STRONG", sprite:"lakitu", maxHp:100, atk:24, reward:220 },
+  { id:"chain", name:"ワンワン", tag:"STRONG", sprite:"chain", maxHp:130, atk:26, reward:260 },
+  { id:"magikoopa", name:"カメック", tag:"ELITE", sprite:"magikoopa",maxHp:150, atk:28, reward:300 },
+  { id:"bowserjr", name:"クッパJr.", tag:"ELITE", sprite:"bowserjr", maxHp:170, atk:30, reward:350 },
+  { id:"bowser", name:"大魔王クッパ", tag:"BOSS", sprite:"bowser", maxHp:280, atk:36, reward:999 }
 ];
 
-// Stage sequence: indices into ENEMY_LIST (last is boss)
-const STAGE_SEQUENCE = [0,1,2,3,4,5,6,7,8,9]; // 9 normal/elite + boss
+const STAGE_SEQUENCE = [0,1,2,3,4,5,6,7,8,9];
 
-// SVG sprites
 const SPRITES = {};
+SPRITES.mario = `<svg viewBox="0 0 120 120"><rect x="38" y="10" width="44" height="10" rx="3" fill="#e52222"/><rect x="30" y="18" width="56" height="14" rx="4" fill="#e52222"/><rect x="34" y="30" width="52" height="36" rx="16" fill="#f4c27a"/><rect x="42" y="40" width="12" height="12" rx="5" fill="#1a1a1a"/><rect x="66" y="40" width="12" height="12" rx="5" fill="#1a1a1a"/><rect x="40" y="56" width="40" height="6" fill="#5c2c16"/><rect x="24" y="66" width="72" height="44" rx="12" fill="#2b7fff"/><rect x="38" y="66" width="44" height="30" fill="#e52222"/><circle cx="46" cy="82" r="5" fill="#ffd700"/><circle cx="74" cy="82" r="5" fill="#ffd700"/><rect x="20" y="74" width="12" height="24" rx="4" fill="#f4c27a"/><rect x="88" y="74" width="12" height="24" rx="4" fill="#f4c27a"/><rect x="30" y="110" width="24" height="10" rx="3" fill="#5c2c16"/><rect x="66" y="110" width="24" height="10" rx="3" fill="#5c2c16"/></svg>`;
+SPRITES.luigi = `<svg viewBox="0 0 120 120"><rect x="38" y="10" width="44" height="10" rx="3" fill="#2ecc71"/><rect x="30" y="18" width="56" height="14" rx="4" fill="#2ecc71"/><rect x="34" y="30" width="52" height="36" rx="16" fill="#f4c27a"/><rect x="42" y="40" width="12" height="12" rx="5" fill="#1a1a1a"/><rect x="66" y="40" width="12" height="12" rx="5" fill="#1a1a1a"/><rect x="38" y="54" width="44" height="8" rx="2" fill="#1a1a1a"/><rect x="24" y="66" width="72" height="44" rx="12" fill="#2b7fff"/><rect x="38" y="66" width="44" height="30" fill="#2ecc71"/><circle cx="46" cy="82" r="5" fill="#ffd700"/><circle cx="74" cy="82" r="5" fill="#ffd700"/><rect x="20" y="74" width="12" height="24" rx="4" fill="#f4c27a"/><rect x="88" y="74" width="12" height="24" rx="4" fill="#f4c27a"/><rect x="30" y="110" width="24" height="10" rx="3" fill="#5c2c16"/><rect x="66" y="110" width="24" height="10" rx="3" fill="#5c2c16"/></svg>`;
+SPRITES.peach = `<svg viewBox="0 0 120 120"><path d="M40 22 L46 10 L54 22 L60 10 L66 22 L74 10 L80 22 Z" fill="#ffd700"/><rect x="32" y="20" width="56" height="20" rx="6" fill="#f39c12"/><rect x="36" y="28" width="48" height="36" rx="14" fill="#f4c27a"/><circle cx="46" cy="40" r="5" fill="#3498db"/><circle cx="74" cy="40" r="5" fill="#3498db"/><ellipse cx="60" cy="54" rx="8" ry="4" fill="#e74c3c"/><path d="M24 64 C24 64 20 110 30 114 C40 118 80 118 90 114 C100 110 96 64 96 64 Z" fill="#ff9ff3"/><ellipse cx="60" cy="74" rx="10" ry="10" fill="#ff4757"/><rect x="16" y="70" width="12" height="20" rx="4" fill="#f4c27a"/><rect x="92" y="70" width="12" height="20" rx="4" fill="#f4c27a"/></svg>`;
+SPRITES.toad = `<svg viewBox="0 0 120 120"><path d="M20 44 C20 10 100 10 100 44 C100 52 20 52 20 44 Z" fill="#fff"/><circle cx="36" cy="24" r="12" fill="#e52222"/><circle cx="84" cy="24" r="12" fill="#e52222"/><circle cx="60" cy="16" r="10" fill="#e52222"/><rect x="40" y="44" width="40" height="32" rx="10" fill="#f4c27a"/><rect x="46" y="54" width="6" height="8" rx="2" fill="#1a1a1a"/><rect x="68" y="54" width="6" height="8" rx="2" fill="#1a1a1a"/><rect x="30" y="76" width="60" height="24" rx="6" fill="#fff"/><rect x="36" y="76" width="48" height="18" fill="#2442a0"/><rect x="22" y="78" width="10" height="16" rx="3" fill="#f4c27a"/><rect x="88" y="78" width="10" height="16" rx="3" fill="#f4c27a"/><rect x="40" y="100" width="16" height="12" rx="3" fill="#5c2c16"/><rect x="64" y="100" width="16" height="12" rx="3" fill="#5c2c16"/></svg>`;
 
-// Mario
-SPRITES.mario = `<svg viewBox="0 0 120 120">
-  <!-- hat -->
-  <rect x="38" y="10" width="44" height="10" rx="3" fill="#e52222"/>
-  <rect x="30" y="18" width="56" height="14" rx="4" fill="#e52222"/>
-  <!-- face -->
-  <rect x="34" y="30" width="52" height="36" rx="16" fill="#f4c27a"/>
-  <!-- eyes -->
-  <rect x="42" y="40" width="12" height="12" rx="5" fill="#1a1a1a"/>
-  <rect x="66" y="40" width="12" height="12" rx="5" fill="#1a1a1a"/>
-  <!-- mustache -->
-  <rect x="46" y="54" width="28" height="7" rx="4" fill="#7a3a12"/>
-  <!-- body -->
-  <rect x="30" y="64" width="60" height="28" rx="8" fill="#2b7fff"/>
-  <!-- overalls buckles -->
-  <rect x="42" y="66" width="12" height="24" rx="4" fill="#e52222"/>
-  <rect x="66" y="66" width="12" height="24" rx="4" fill="#e52222"/>
-  <!-- arms -->
-  <rect x="14" y="64" width="18" height="20" rx="9" fill="#f4c27a"/>
-  <rect x="88" y="64" width="18" height="20" rx="9" fill="#f4c27a"/>
-  <!-- gloves -->
-  <rect x="10" y="78" width="22" height="12" rx="6" fill="#fff"/>
-  <rect x="88" y="78" width="22" height="12" rx="6" fill="#fff"/>
-  <!-- legs -->
-  <rect x="36" y="90" width="18" height="22" rx="6" fill="#e52222"/>
-  <rect x="66" y="90" width="18" height="22" rx="6" fill="#e52222"/>
-  <!-- shoes -->
-  <rect x="30" y="106" width="26" height="12" rx="5" fill="#7a4500"/>
-  <rect x="64" y="106" width="26" height="12" rx="5" fill="#7a4500"/>
-</svg>`;
+SPRITES.goomba = `<svg viewBox="0 0 120 120"><path d="M20 60 C20 20 100 20 100 60 C100 76 20 76 20 60 Z" fill="#a0522d"/><rect x="34" y="64" width="52" height="26" rx="6" fill="#f4c27a"/><path d="M38 42 L52 48 L40 50 Z" fill="#fff"/><path d="M82 42 L68 48 L80 50 Z" fill="#fff"/><circle cx="46" cy="54" r="5" fill="#000"/><circle cx="74" cy="54" r="5" fill="#000"/><rect x="48" y="68" width="24" height="6" fill="#000"/><rect x="30" y="90" width="26" height="16" rx="6" fill="#1a1a1a"/><rect x="64" y="90" width="26" height="16" rx="6" fill="#1a1a1a"/></svg>`;
+SPRITES.koopa = `<svg viewBox="0 0 120 120"><rect x="34" y="20" width="44" height="36" rx="12" fill="#ffeb3b"/><path d="M24 56 C24 40 96 40 96 56 C96 96 24 96 24 56 Z" fill="#4caf50"/><path d="M34 56 C34 50 86 50 86 56 C86 86 34 86 34 56 Z" fill="#fff"/><circle cx="62" cy="32" r="5" fill="#000"/><circle cx="44" cy="32" r="5" fill="#000"/><rect x="20" y="76" width="12" height="16" rx="4" fill="#ffeb3b"/><rect x="88" y="76" width="12" height="16" rx="4" fill="#ffeb3b"/><rect x="40" y="96" width="16" height="16" rx="4" fill="#ffeb3b"/><rect x="64" y="96" width="16" height="16" rx="4" fill="#ffeb3b"/></svg>`;
+SPRITES.piranha = `<svg viewBox="0 0 120 120"><rect x="54" y="60" width="12" height="40" fill="#4caf50"/><path d="M40 80 Q60 70 80 80 Z" fill="#2e7d32"/><circle cx="60" cy="40" r="30" fill="#e52222"/><circle cx="46" cy="24" r="4" fill="#fff"/><circle cx="76" cy="34" r="5" fill="#fff"/><circle cx="44" cy="46" r="4" fill="#fff"/><path d="M30 40 Q60 55 90 40 Z" fill="#1a1a1a"/><path d="M34 41 L42 46 L50 41 L58 46 L66 41 L74 46 L82 41 L90 41" stroke="#fff" stroke-width="4" fill="none"/></svg>`;
+SPRITES.boo = `<svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="36" fill="#fff" stroke="#ccc" stroke-width="2"/><ellipse cx="50" cy="50" rx="4" ry="7" fill="#000"/><ellipse cx="70" cy="50" rx="4" ry="7" fill="#000"/><path d="M40 40 L52 46 M80 40 L68 46" stroke="#000" stroke-width="3"/><path d="M44 66 Q60 84 76 66 Z" fill="#ff4757"/><path d="M46 66 L52 70 L58 66 L64 70 L70 66" stroke="#fff" stroke-width="2" fill="none"/><path d="M20 64 Q10 54 22 48 Z" fill="#fff"/><path d="M100 64 Q110 54 98 48 Z" fill="#fff"/></svg>`;
+SPRITES.hammer = `<svg viewBox="0 0 120 120"><rect x="34" y="16" width="46" height="40" rx="14" fill="#22a6b3"/><rect x="30" y="14" width="54" height="12" rx="4" fill="#fff" opacity="0.3"/><circle cx="48" cy="30" r="5" fill="#000"/><circle cx="68" cy="30" r="5" fill="#000"/><path d="M20 54 C20 40 96 40 96 56 C96 92 24 92 24 54 Z" fill="#f9ca24"/><rect x="80" y="34" width="30" height="20" rx="4" fill="#535c68"/><rect x="90" y="54" width="8" height="40" fill="#f5f6fa"/><rect x="34" y="94" width="18" height="14" rx="3" fill="#22a6b3"/><rect x="64" y="94" width="18" height="14" rx="3" fill="#22a6b3"/></svg>`;
+SPRITES.lakitu = `<svg viewBox="0 0 120 120"><circle cx="60" cy="40" r="22" fill="#ffeb3b"/><rect x="46" y="30" width="28" height="14" rx="6" fill="#30336b"/><circle cx="52" cy="36" r="3" fill="#fff"/><circle cx="68" cy="36" r="3" fill="#fff"/><path d="M26 76 C26 50 94 50 94 76 C94 100 26 100 26 76 Z" fill="#f5f6fa"/><circle cx="40" cy="70" r="12" fill="#fff"/><circle cx="60" cy="66" r="14" fill="#fff"/><circle cx="80" cy="70" r="12" fill="#fff"/></svg>`;
+SPRITES.chain = `<svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="40" fill="#2f3640"/><circle cx="60" cy="60" r="39" stroke="#718093" stroke-width="2" fill="none"/><circle cx="44" cy="44" r="7" fill="#fff"/><circle cx="76" cy="44" r="7" fill="#fff"/><circle cx="46" cy="46" r="3" fill="#000"/><circle cx="74" cy="46" r="3" fill="#000"/><path d="M24 60 L96 60 Z" stroke="#fff" stroke-width="4"/><path d="M28 60 L36 50 L44 60 L52 50 L60 60 L68 50 L76 60 L84 50 L92 60" fill="none" stroke="#fff" stroke-width="4"/><path d="M28 60 L36 70 L44 60 L52 70 L60 60 L68 70 L76 60 L84 70 L92 60" fill="none" stroke="#fff" stroke-width="4"/></svg>`;
+SPRITES.magikoopa = `<svg viewBox="0 0 120 120"><path d="M34 44 L60 4 L86 44 Z" fill="#1e90ff"/><circle cx="60" cy="4" r="5" fill="#fff"/><rect x="36" y="40" width="48" height="32" rx="10" fill="#ffeb3b"/><rect x="40" y="46" width="16" height="12" rx="4" fill="#fff" stroke="#000"/><rect x="64" y="46" width="16" height="12" rx="4" fill="#fff" stroke="#000"/><circle cx="48" cy="52" r="3" fill="#000"/><circle cx="72" cy="52" r="3" fill="#000"/><path d="M24 72 C24 72 20 110 30 114 C40 118 80 118 90 114 C100 110 96 72 96 72 Z" fill="#1e90ff"/><rect x="86" y="60" width="8" height="40" fill="#ffd700" rx="3"/><circle cx="90" cy="54" r="8" fill="#ff4757"/></svg>`;
+SPRITES.bowserjr = `<svg viewBox="0 0 120 120"><rect x="34" y="20" width="52" height="44" rx="16" fill="#ffeb3b"/><path d="M30 16 L42 24 M90 16 L78 24" stroke="#ff4757" stroke-width="5" stroke-linecap="round"/><circle cx="48" cy="36" r="5" fill="#000"/><circle cx="72" cy="36" r="5" fill="#000"/><path d="M44 48 Q60 64 76 48 Z" fill="#fff" stroke="#000"/><path d="M20 64 C20 44 100 44 100 64 C100 104 20 104 20 64 Z" fill="#4caf50"/><rect x="30" y="60" width="60" height="24" fill="#fff" stroke="#ff4757" stroke-width="2" rx="4"/><circle cx="44" cy="72" r="3" fill="#000"/><circle cx="76" cy="72" r="3" fill="#000"/></svg>`;
+SPRITES.bowser = `<svg viewBox="0 0 120 120"><rect x="24" y="14" width="72" height="60" rx="20" fill="#ffeb3b"/><path d="M20 10 L36 22 M100 10 L84 22" stroke="#ffa502" stroke-width="8" stroke-linecap="round"/><path d="M14 60 C14 30 106 30 106 60 C106 110 14 110 14 60 Z" fill="#4caf50"/><circle cx="44" cy="36" r="7" fill="#ff4757"/><circle cx="76" cy="36" r="7" fill="#ff4757"/><circle cx="46" cy="36" r="2" fill="#000"/><circle cx="74" cy="36" r="2" fill="#000"/><path d="M30 50 Q60 76 90 50 Z" fill="#ffeb3b" stroke="#d35400" stroke-width="3"/><path d="M36 51 L44 60 L52 51 L60 60 L68 51 L76 60 L84 51" stroke="#fff" stroke-width="5" fill="none"/><rect x="10" y="56" width="14" height="20" rx="3" fill="#fff"/><rect x="96" y="56" width="14" height="20" rx="3" fill="#fff"/></svg>`;
 
-SPRITES.luigi = `<svg viewBox="0 0 120 120">
-  <rect x="38" y="8" width="44" height="10" rx="3" fill="#2ecc71"/>
-  <rect x="30" y="16" width="56" height="14" rx="4" fill="#2ecc71"/>
-  <rect x="34" y="28" width="52" height="38" rx="16" fill="#f4c27a"/>
-  <rect x="42" y="38" width="12" height="13" rx="5" fill="#1a1a1a"/>
-  <rect x="66" y="38" width="12" height="13" rx="5" fill="#1a1a1a"/>
-  <rect x="44" y="52" width="32" height="8" rx="4" fill="#7a3a12"/>
-  <rect x="30" y="64" width="60" height="28" rx="8" fill="#2ecc71"/>
-  <rect x="42" y="66" width="12" height="24" rx="4" fill="#1a1a1a"/>
-  <rect x="66" y="66" width="12" height="24" rx="4" fill="#1a1a1a"/>
-  <rect x="14" y="64" width="18" height="20" rx="9" fill="#f4c27a"/>
-  <rect x="88" y="64" width="18" height="20" rx="9" fill="#f4c27a"/>
-  <rect x="10" y="78" width="22" height="12" rx="6" fill="#fff"/>
-  <rect x="88" y="78" width="22" height="12" rx="6" fill="#fff"/>
-  <rect x="36" y="90" width="18" height="22" rx="6" fill="#2ecc71"/>
-  <rect x="66" y="90" width="18" height="22" rx="6" fill="#2ecc71"/>
-  <rect x="30" y="106" width="26" height="12" rx="5" fill="#7a4500"/>
-  <rect x="64" y="106" width="26" height="12" rx="5" fill="#7a4500"/>
-</svg>`;
-
-SPRITES.peach = `<svg viewBox="0 0 120 120">
-  <!-- crown -->
-  <rect x="36" y="2" width="48" height="8" rx="2" fill="#ffd700"/>
-  <rect x="42" y="2" width="6" height="12" rx="2" fill="#ffd700"/>
-  <rect x="57" y="2" width="6" height="14" rx="2" fill="#ffd700"/>
-  <rect x="72" y="2" width="6" height="12" rx="2" fill="#ffd700"/>
-  <!-- hair -->
-  <rect x="24" y="14" width="72" height="20" rx="10" fill="#f4c22a"/>
-  <!-- face -->
-  <rect x="34" y="24" width="52" height="34" rx="16" fill="#f9d4a8"/>
-  <!-- eyes -->
-  <rect x="42" y="34" width="10" height="11" rx="5" fill="#1a1a1a"/>
-  <rect x="68" y="34" width="10" height="11" rx="5" fill="#1a1a1a"/>
-  <!-- lips -->
-  <rect x="50" y="48" width="20" height="6" rx="3" fill="#e06080"/>
-  <!-- dress -->
-  <rect x="24" y="56" width="72" height="40" rx="12" fill="#ff88b8"/>
-  <!-- collar -->
-  <rect x="44" y="54" width="32" height="12" rx="6" fill="#fff"/>
-  <!-- arms -->
-  <rect x="12" y="62" width="16" height="18" rx="8" fill="#f9d4a8"/>
-  <rect x="92" y="62" width="16" height="18" rx="8" fill="#f9d4a8"/>
-  <!-- shoes -->
-  <rect x="34" y="108" width="22" height="10" rx="5" fill="#e52222"/>
-  <rect x="64" y="108" width="22" height="10" rx="5" fill="#e52222"/>
-</svg>`;
-
-SPRITES.toad = `<svg viewBox="0 0 120 120">
-  <!-- mushroom cap -->
-  <ellipse cx="60" cy="30" rx="44" ry="28" fill="#ff4444"/>
-  <circle cx="42" cy="24" r="9" fill="#fff4d9"/>
-  <circle cx="78" cy="20" r="8" fill="#fff4d9"/>
-  <circle cx="60" cy="14" r="10" fill="#fff4d9"/>
-  <!-- face -->
-  <rect x="36" y="42" width="48" height="32" rx="16" fill="#ffecd6"/>
-  <!-- eyes -->
-  <rect x="44" y="50" width="12" height="12" rx="5" fill="#1a1a1a"/>
-  <rect x="64" y="50" width="12" height="12" rx="5" fill="#1a1a1a"/>
-  <!-- vest -->
-  <rect x="32" y="72" width="56" height="26" rx="8" fill="#fff"/>
-  <rect x="38" y="72" width="44" height="10" rx="4" fill="#2b7fff"/>
-  <!-- legs -->
-  <rect x="36" y="94" width="18" height="20" rx="6" fill="#ffecd6"/>
-  <rect x="66" y="94" width="18" height="20" rx="6" fill="#ffecd6"/>
-  <!-- shoes -->
-  <rect x="30" y="108" width="26" height="10" rx="4" fill="#8b4500"/>
-  <rect x="64" y="108" width="26" height="10" rx="4" fill="#8b4500"/>
-</svg>`;
-
-// ENEMIES
-SPRITES.goomba = `<svg viewBox="0 0 120 120">
-  <ellipse cx="60" cy="108" rx="28" ry="7" fill="rgba(0,0,0,0.2)"/>
-  <ellipse cx="60" cy="66" rx="42" ry="44" fill="#c87428"/>
-  <ellipse cx="60" cy="56" rx="36" ry="28" fill="#e8904a"/>
-  <ellipse cx="42" cy="50" rx="10" ry="12" fill="#1a0800"/>
-  <ellipse cx="78" cy="50" rx="10" ry="12" fill="#1a0800"/>
-  <ellipse cx="42" cy="49" rx="4" ry="5" fill="#fff" opacity="0.7"/>
-  <ellipse cx="78" cy="49" rx="4" ry="5" fill="#fff" opacity="0.7"/>
-  <path d="M44 70 Q60 82 76 70" stroke="#7a3200" stroke-width="4" stroke-linecap="round" fill="none"/>
-  <rect x="20" y="90" width="26" height="18" rx="6" fill="#c87428"/>
-  <rect x="74" y="90" width="26" height="18" rx="6" fill="#c87428"/>
-</svg>`;
-
-SPRITES.koopa = `<svg viewBox="0 0 120 120">
-  <ellipse cx="60" cy="110" rx="26" ry="7" fill="rgba(0,0,0,0.2)"/>
-  <!-- shell -->
-  <ellipse cx="60" cy="72" rx="38" ry="42" fill="#2ecc71"/>
-  <ellipse cx="60" cy="70" rx="30" ry="34" fill="#27ae60"/>
-  <!-- shell pattern -->
-  <line x1="60" y1="36" x2="60" y2="104" stroke="#1a8a4a" stroke-width="2.5"/>
-  <line x1="22" y1="70" x2="98" y2="70" stroke="#1a8a4a" stroke-width="2.5"/>
-  <!-- head -->
-  <ellipse cx="60" cy="36" rx="22" ry="22" fill="#f4c27a"/>
-  <ellipse cx="50" cy="30" rx="6" ry="7" fill="#1a1a1a"/>
-  <ellipse cx="70" cy="30" rx="6" ry="7" fill="#1a1a1a"/>
-  <!-- neck -->
-  <rect x="50" y="44" width="20" height="12" rx="6" fill="#f4c27a"/>
-  <!-- legs -->
-  <rect x="28" y="100" width="22" height="16" rx="6" fill="#f4c27a"/>
-  <rect x="70" y="100" width="22" height="16" rx="6" fill="#f4c27a"/>
-</svg>`;
-
-SPRITES.piranha = `<svg viewBox="0 0 120 120">
-  <!-- pipe -->
-  <rect x="38" y="70" width="44" height="50" rx="4" fill="#2ecc71"/>
-  <rect x="34" y="64" width="52" height="14" rx="4" fill="#27ae60"/>
-  <!-- stem -->
-  <rect x="55" y="30" width="10" height="40" fill="#2ecc71"/>
-  <!-- head -->
-  <ellipse cx="60" cy="28" rx="30" ry="26" fill="#e52222"/>
-  <ellipse cx="60" cy="24" rx="22" ry="16" fill="#ff6666"/>
-  <!-- spots -->
-  <circle cx="48" cy="20" r="5" fill="#fff"/>
-  <circle cx="72" cy="22" r="4" fill="#fff"/>
-  <!-- eyes -->
-  <circle cx="44" cy="26" r="6" fill="#fff"/>
-  <circle cx="76" cy="26" r="6" fill="#fff"/>
-  <circle cx="45" cy="26" r="3" fill="#1a1a1a"/>
-  <circle cx="77" cy="26" r="3" fill="#1a1a1a"/>
-  <!-- teeth -->
-  <path d="M40 36 L46 28 L52 36 L58 28 L64 36 L70 28 L76 36 L82 28 L80 36 Z" fill="#fff"/>
-</svg>`;
-
-SPRITES.boo = `<svg viewBox="0 0 120 120">
-  <ellipse cx="60" cy="106" rx="30" ry="8" fill="rgba(0,0,0,0.15)"/>
-  <!-- body -->
-  <ellipse cx="60" cy="62" rx="46" ry="50" fill="rgba(255,255,255,0.95)"/>
-  <ellipse cx="60" cy="56" rx="40" ry="42" fill="#fff"/>
-  <!-- wavy bottom -->
-  <path d="M14 90 Q22 106 36 90 Q46 106 60 90 Q74 106 84 90 Q98 106 106 90" fill="#fff" stroke="none"/>
-  <!-- eyes -->
-  <ellipse cx="44" cy="54" rx="12" ry="14" fill="#1a1a1a"/>
-  <ellipse cx="76" cy="54" rx="12" ry="14" fill="#1a1a1a"/>
-  <ellipse cx="44" cy="52" rx="5" ry="6" fill="#fff"/>
-  <ellipse cx="76" cy="52" rx="5" ry="6" fill="#fff"/>
-  <!-- smile -->
-  <path d="M42 72 Q60 86 78 72" stroke="#e84444" stroke-width="4" stroke-linecap="round" fill="none"/>
-  <!-- cheeks -->
-  <ellipse cx="32" cy="64" rx="10" ry="8" fill="rgba(255,100,100,0.3)"/>
-  <ellipse cx="88" cy="64" rx="10" ry="8" fill="rgba(255,100,100,0.3)"/>
-</svg>`;
-
-SPRITES.hammer = `<svg viewBox="0 0 120 120">
-  <ellipse cx="60" cy="110" rx="26" ry="7" fill="rgba(0,0,0,0.2)"/>
-  <!-- shell on back -->
-  <ellipse cx="60" cy="68" rx="30" ry="36" fill="#e52222"/>
-  <!-- head -->
-  <ellipse cx="60" cy="38" rx="24" ry="22" fill="#f4c27a"/>
-  <ellipse cx="46" cy="32" rx="7" ry="8" fill="#1a1a1a"/>
-  <ellipse cx="74" cy="32" rx="7" ry="8" fill="#1a1a1a"/>
-  <ellipse cx="46" cy="31" rx="3" ry="4" fill="#fff" opacity="0.7"/>
-  <ellipse cx="74" cy="31" rx="3" ry="4" fill="#fff" opacity="0.7"/>
-  <!-- helmet -->
-  <path d="M36 34 Q60 8 84 34" fill="#e52222" stroke="none"/>
-  <!-- hammer -->
-  <rect x="82" y="24" width="28" height="18" rx="4" fill="#a8660a"/>
-  <rect x="94" y="18" width="6" height="40" rx="2" fill="#7a4500"/>
-  <!-- legs -->
-  <rect x="38" y="92" width="18" height="20" rx="6" fill="#f4c27a"/>
-  <rect x="64" y="92" width="18" height="20" rx="6" fill="#f4c27a"/>
-</svg>`;
-
-SPRITES.lakitu = `<svg viewBox="0 0 120 120">
-  <!-- cloud -->
-  <ellipse cx="60" cy="42" rx="40" ry="24" fill="#fff"/>
-  <ellipse cx="44" cy="36" rx="20" ry="18" fill="#fff"/>
-  <ellipse cx="76" cy="36" rx="20" ry="18" fill="#fff"/>
-  <!-- fishing rod -->
-  <line x1="66" y1="18" x2="100" y2="50" stroke="#8b5a00" stroke-width="3"/>
-  <circle cx="100" cy="54" r="8" fill="#e52222"/> <!-- spiny -->
-  <!-- body -->
-  <ellipse cx="60" cy="46" rx="16" ry="18" fill="#f4c27a"/>
-  <!-- glasses -->
-  <rect x="42" y="40" width="16" height="12" rx="4" fill="none" stroke="#7a4500" stroke-width="2.5"/>
-  <rect x="62" y="40" width="16" height="12" rx="4" fill="none" stroke="#7a4500" stroke-width="2.5"/>
-  <line x1="58" y1="46" x2="62" y2="46" stroke="#7a4500" stroke-width="2"/>
-  <circle cx="50" cy="46" r="3" fill="#1a1a1a"/>
-  <circle cx="70" cy="46" r="3" fill="#1a1a1a"/>
-  <!-- shell -->
-  <ellipse cx="60" cy="74" rx="26" ry="22" fill="#2ecc71"/>
-  <!-- arms -->
-  <rect x="16" y="54" width="16" height="12" rx="6" fill="#f4c27a"/>
-  <rect x="88" y="54" width="16" height="12" rx="6" fill="#f4c27a"/>
-</svg>`;
-
-SPRITES.chain = `<svg viewBox="0 0 120 120">
-  <!-- chain -->
-  <circle cx="60" cy="108" r="8" fill="#888"/>
-  <rect x="57" y="76" width="6" height="36" fill="#888"/>
-  <circle cx="60" cy="74" r="6" fill="#888"/>
-  <!-- body -->
-  <circle cx="60" cy="56" r="38" fill="#1a1a1a"/>
-  <circle cx="60" cy="52" r="32" fill="#2a2a2a"/>
-  <!-- eyes -->
-  <circle cx="44" cy="48" r="10" fill="#fff"/>
-  <circle cx="76" cy="48" r="10" fill="#fff"/>
-  <circle cx="46" cy="48" r="6" fill="#e52222"/>
-  <circle cx="78" cy="48" r="6" fill="#e52222"/>
-  <!-- teeth -->
-  <path d="M34 66 L40 56 L46 66 L52 56 L58 66 L64 56 L70 66 L76 56 L82 66 L86 56 L88 66" fill="none" stroke="#fff" stroke-width="3" stroke-linejoin="round"/>
-</svg>`;
-
-SPRITES.magikoopa = `<svg viewBox="0 0 120 120">
-  <ellipse cx="60" cy="110" rx="26" ry="7" fill="rgba(0,0,0,0.2)"/>
-  <!-- robe -->
-  <ellipse cx="60" cy="80" rx="36" ry="38" fill="#4444cc"/>
-  <!-- head -->
-  <ellipse cx="60" cy="42" rx="22" ry="22" fill="#f4c27a"/>
-  <!-- hat -->
-  <polygon points="60,4 36,36 84,36" fill="#4444cc"/>
-  <rect x="30" y="34" width="60" height="8" rx="3" fill="#3333aa"/>
-  <!-- glasses -->
-  <rect x="40" y="40" width="14" height="10" rx="3" fill="none" stroke="#333" stroke-width="2.5"/>
-  <rect x="58" y="40" width="14" height="10" rx="3" fill="none" stroke="#333" stroke-width="2.5"/>
-  <line x1="54" y1="45" x2="58" y2="45" stroke="#333" stroke-width="2"/>
-  <circle cx="47" cy="45" r="3" fill="#1a1a1a"/>
-  <circle cx="65" cy="45" r="3" fill="#1a1a1a"/>
-  <!-- wand + magic -->
-  <rect x="84" y="34" width="5" height="36" rx="2" fill="#333"/>
-  <circle cx="86" cy="30" r="10" fill="#9b59b6" opacity="0.8"/>
-  <circle cx="86" cy="30" r="6" fill="#d891ff"/>
-  <!-- arms -->
-  <rect x="16" y="70" width="16" height="14" rx="7" fill="#f4c27a"/>
-  <rect x="88" y="60" width="16" height="14" rx="7" fill="#f4c27a"/>
-</svg>`;
-
-SPRITES.bowserjr = `<svg viewBox="0 0 120 120">
-  <ellipse cx="60" cy="112" rx="30" ry="8" fill="rgba(0,0,0,0.2)"/>
-  <!-- shell -->
-  <ellipse cx="60" cy="78" rx="40" ry="38" fill="#2a8000"/>
-  <ellipse cx="60" cy="76" rx="32" ry="30" fill="#3aaa10"/>
-  <!-- shell lines -->
-  <line x1="60" y1="46" x2="60" y2="106" stroke="#1a6000" stroke-width="2.5"/>
-  <line x1="20" y1="78" x2="100" y2="78" stroke="#1a6000" stroke-width="2.5"/>
-  <!-- body / neck -->
-  <rect x="42" y="52" width="36" height="20" rx="10" fill="#e8a84a"/>
-  <!-- head -->
-  <ellipse cx="60" cy="40" rx="30" ry="26" fill="#e8a84a"/>
-  <!-- hair -->
-  <path d="M44 20 Q60 4 76 20" stroke="#e52222" stroke-width="6" fill="none" stroke-linecap="round"/>
-  <!-- eyes -->
-  <ellipse cx="46" cy="36" rx="8" ry="9" fill="#fff"/>
-  <ellipse cx="74" cy="36" rx="8" ry="9" fill="#fff"/>
-  <circle cx="48" cy="36" r="4" fill="#1a1a1a"/>
-  <circle cx="76" cy="36" r="4" fill="#1a1a1a"/>
-  <!-- mouth -->
-  <path d="M44 52 Q60 64 76 52" stroke="#7a2800" stroke-width="3" fill="none"/>
-  <!-- arms -->
-  <rect x="14" y="70" width="18" height="22" rx="9" fill="#e8a84a"/>
-  <rect x="88" y="70" width="18" height="22" rx="9" fill="#e8a84a"/>
-  <!-- fists -->
-  <ellipse cx="22" cy="94" rx="12" ry="10" fill="#e8a84a"/>
-  <ellipse cx="98" cy="94" rx="12" ry="10" fill="#e8a84a"/>
-</svg>`;
-
-SPRITES.bowser = `<svg viewBox="0 0 120 120">
-  <ellipse cx="60" cy="114" rx="36" ry="8" fill="rgba(0,0,0,0.25)"/>
-  <!-- shell -->
-  <ellipse cx="60" cy="82" rx="46" ry="44" fill="#2a8000"/>
-  <ellipse cx="60" cy="80" rx="38" ry="36" fill="#3aaa10"/>
-  <line x1="60" y1="44" x2="60" y2="116" stroke="#1a6000" stroke-width="3"/>
-  <line x1="14" y1="80" x2="106" y2="80" stroke="#1a6000" stroke-width="3"/>
-  <ellipse cx="60" cy="80" rx="12" ry="12" fill="#ffd700"/>
-  <!-- spikes -->
-  <polygon points="34,50 40,34 46,50" fill="#e8a84a"/>
-  <polygon points="54,44 60,26 66,44" fill="#e8a84a"/>
-  <polygon points="74,50 80,34 86,50" fill="#e8a84a"/>
-  <!-- head -->
-  <ellipse cx="60" cy="42" rx="36" ry="32" fill="#e8a84a"/>
-  <!-- horns -->
-  <polygon points="34,24 28,4 44,20" fill="#e52222"/>
-  <polygon points="86,24 92,4 76,20" fill="#e52222"/>
-  <!-- eyes -->
-  <ellipse cx="44" cy="36" rx="10" ry="11" fill="#fff"/>
-  <ellipse cx="76" cy="36" rx="10" ry="11" fill="#fff"/>
-  <circle cx="46" cy="36" r="5" fill="#e52222"/>
-  <circle cx="78" cy="36" r="5" fill="#e52222"/>
-  <circle cx="47" cy="35" r="2" fill="#1a1a1a"/>
-  <circle cx="79" cy="35" r="2" fill="#1a1a1a"/>
-  <!-- eyebrows angry -->
-  <line x1="36" y1="26" x2="52" y2="30" stroke="#7a3200" stroke-width="4" stroke-linecap="round"/>
-  <line x1="84" y1="26" x2="68" y2="30" stroke="#7a3200" stroke-width="4" stroke-linecap="round"/>
-  <!-- nostrils -->
-  <ellipse cx="52" cy="48" rx="5" ry="4" fill="#c87428"/>
-  <ellipse cx="68" cy="48" rx="5" ry="4" fill="#c87428"/>
-  <!-- teeth -->
-  <path d="M42 56 L46 48 L52 56 L58 48 L64 56 L70 48 L76 56 L78 48 L80 56" fill="none" stroke="#fff" stroke-width="3" stroke-linejoin="round"/>
-  <!-- arms -->
-  <rect x="6" y="74" width="24" height="28" rx="12" fill="#e8a84a"/>
-  <rect x="90" y="74" width="24" height="28" rx="12" fill="#e8a84a"/>
-  <ellipse cx="18" cy="104" rx="14" ry="12" fill="#e8a84a"/>
-  <ellipse cx="102" cy="104" rx="14" ry="12" fill="#e8a84a"/>
-</svg>`;
-
-// ================================================================
-// GAME STATE
-// ================================================================
 const G = {
-  char: null,
   stage: 0,
   score: 0,
-  playerHp: 0,
-  playerMaxHp: 0,
-  enemyHp: 0,
+  selectedChar: null,
+  playerHp: 100,
+  playerMaxHp: 100,
   enemy: null,
-  locked: false,
-  items: { mushroom: true, star: true, flower: true, shell: true },
-  starActive: false,
+  enemyHp: 100,
+  items: { mushroom: 1, star: 1, flower: 1, shell: 1 },
   shellActive: false,
-  wins: 0,
+  starActive: false,
+  isAnimating: false
 };
 
-// ================================================================
-// HELPERS
-// ================================================================
-const $ = id => document.getElementById(id);
-function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
-function hpPct(cur,max){ return clamp(cur/max*100,0,100); }
+function $(id) { return document.getElementById(id); }
 
-function setHpBar(fillEl, txtEl, cur, max) {
-  const pct = hpPct(cur,max);
-  fillEl.style.width = pct + "%";
-  fillEl.classList.remove("low","medium");
-  if (pct <= 25) fillEl.classList.add("low");
-  else if (pct <= 55) fillEl.classList.add("medium");
-  if (txtEl) txtEl.textContent = `${cur} / ${max}`;
-}
-
-function showNotice(txt) {
-  const n = $("notice");
-  n.textContent = txt;
-  n.classList.remove("show");
-  void n.offsetWidth;
-  n.classList.add("show");
-}
-
-function triggerFlash() {
-  const f = $("flash");
-  f.classList.remove("on");
-  void f.offsetWidth;
-  f.classList.add("on");
-}
-
-function showDmg(popId, amount, isHeal=false) {
-  const el = $(popId);
-  el.textContent = isHeal ? `+${amount}` : `-${amount}`;
-  el.classList.toggle("heal", isHeal);
-  el.classList.remove("show");
-  void el.offsetWidth;
-  el.classList.add("show");
-}
-
-function setBadge(elId, handKey, fallback) {
-  const el = $(elId);
-  if (!handKey) { el.innerHTML = `<span class="hem">？</span>${fallback}`; return; }
-  el.innerHTML = `<span class="hem">${HANDS[handKey].emoji}</span>${HANDS[handKey].jp}`;
-}
-
-function triggerImpact(cardId, spriteId) {
-  const card = $(cardId);
-  const sprite = $(spriteId);
-  card.classList.remove("shaking"); sprite.classList.remove("hit","attack");
-  void card.offsetWidth;
-  card.classList.add("shaking"); sprite.classList.add("hit");
-  triggerFlash();
-}
-
-function triggerAttack(spriteId) {
-  const sprite = $(spriteId);
-  sprite.classList.remove("attack");
-  void sprite.offsetWidth;
-  sprite.classList.add("attack");
-}
-
-function disableControls(v) {
-  document.querySelectorAll(".choice-btn").forEach(b => b.disabled = v);
-  ["itemMushroom","itemStar","itemFlower","itemShell"].forEach(id => {
-    const b = $(id);
-    if (b) b.disabled = v || !G.items[id.replace("item","").toLowerCase()];
-  });
-}
+window.addEventListener("DOMContentLoaded", () => {
+  renderCharGrid();
+  initProgressDots();
+});
 
 function showScreen(id) {
   document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
   $(id).classList.add("active");
 }
 
-function randomHand() {
-  const keys = Object.keys(HANDS);
-  return keys[Math.floor(Math.random() * keys.length)];
-}
-
-function judge(p, e) {
-  if (p === e) return "draw";
-  return HANDS[p].beats === e ? "win" : "lose";
-}
-
-// ================================================================
-// CHARACTER SELECT
-// ================================================================
-function buildCharGrid() {
+function renderCharGrid() {
   const grid = $("charGrid");
   grid.innerHTML = "";
   CHARS.forEach(c => {
-    const div = document.createElement("div");
-    div.className = "char-card";
-    div.dataset.id = c.id;
-    div.innerHTML = `
+    const card = document.createElement("div");
+    card.className = "char-card";
+    card.id = "card_" + c.id;
+    card.onclick = () => selectChar(c.id);
+    card.innerHTML = `
       ${SPRITES[c.spriteKey]}
       <div class="char-name">${c.name}</div>
       <div class="char-stats">${c.stats}</div>
       <div class="char-desc">${c.desc}</div>
     `;
-    div.onclick = () => {
-      document.querySelectorAll(".char-card").forEach(x => x.classList.remove("selected"));
-      div.classList.add("selected");
-      G.char = c;
-      $("confirmCharBtn").disabled = false;
-    };
-    grid.appendChild(div);
+    grid.appendChild(card);
   });
+}
+
+function selectChar(id) {
+  document.querySelectorAll(".char-card").forEach(c => c.classList.remove("selected"));
+  $("card_" + id).classList.add("selected");
+  const c = CHARS.find(x => x.id === id);
+  G.selectedChar = c;
+  $("confirmCharBtn").disabled = false;
 }
 
 function confirmChar() {
-  if (!G.char) return;
-  startGame();
-}
-
-// ================================================================
-// GAME START
-// ================================================================
-function startGame() {
-  const c = G.char;
+  if (!G.selectedChar) return;
   G.stage = 0;
   G.score = 0;
-  G.playerMaxHp = c.maxHp;
-  G.playerHp = c.maxHp;
-  G.items = { mushroom: true, star: true, flower: true, shell: true };
-  G.starActive = false;
-  G.shellActive = false;
-  G.wins = 0;
+  G.playerMaxHp = G.selectedChar.maxHp;
+  G.playerHp = G.playerMaxHp;
+  G.items = { mushroom: 1, star: 1, flower: 1, shell: 1 };
+  
+  $("playerNameDisplay").innerHTML = G.selectedChar.name;
+  $("playerSpriteBox").innerHTML = SPRITES[G.selectedChar.spriteKey];
+  $("scoreVal").innerText = G.score;
 
-  $("playerNameDisplay").textContent = c.name;
-  $("playerSpriteBox").innerHTML = SPRITES[c.spriteKey];
-
-  buildStageProgress();
-  loadStage(G.stage);
-  updateItemButtons();
+  loadStage();
   showScreen("gameScreen");
 }
 
-function buildStageProgress() {
-  const bar = $("stageProgress");
-  bar.innerHTML = "";
-  STAGE_SEQUENCE.forEach((eIdx, i) => {
+function initProgressDots() {
+  const p = $("stageProgress");
+  p.innerHTML = "";
+  STAGE_SEQUENCE.forEach((enemyIdx, i) => {
     const pip = document.createElement("div");
-    pip.className = "stage-pip" + (ENEMY_LIST[eIdx].tag === "BOSS" ? " boss" : "");
-    pip.id = `pip${i}`;
-    bar.appendChild(pip);
+    pip.className = "stage-pip";
+    if (i === STAGE_SEQUENCE.length - 1) pip.classList.add("boss");
+    p.appendChild(pip);
   });
-  updateStageProgress();
 }
 
-function updateStageProgress() {
-  STAGE_SEQUENCE.forEach((_, i) => {
-    const pip = $(`pip${i}`);
-    if (!pip) return;
-    pip.classList.remove("done","current");
+function updateProgressDots() {
+  const pips = document.querySelectorAll(".stage-pip");
+  pips.forEach((pip, i) => {
+    pip.classList.remove("current", "done");
     if (i < G.stage) pip.classList.add("done");
     else if (i === G.stage) pip.classList.add("current");
   });
 }
 
-function loadStage(idx) {
-  const eData = ENEMY_LIST[STAGE_SEQUENCE[idx]];
-  G.enemy = { ...eData };
-  G.enemyHp = eData.maxHp;
-  G.locked = false;
+function loadStage() {
+  G.shellActive = false;
+  G.starActive = false;
+  
+  const enemyData = ENEMY_LIST[STAGE_SEQUENCE[G.stage]];
+  G.enemy = Object.assign({}, enemyData);
+  G.enemyHp = G.enemy.maxHp;
 
-  $("stageLabel").textContent = idx + 1;
-  $("scoreVal").textContent = G.score;
-  $("enemyName").textContent = eData.name;
-  $("enemyTag").textContent = eData.tag;
-  $("enemyTag").className = "fighter-tag " +
-    (eData.tag === "BOSS" ? "tag-boss" : eData.tag === "ELITE" ? "tag-boss" : "tag-normal");
+  $("stageLabel").innerText = `${G.stage + 1} / ${STAGE_SEQUENCE.length}`;
+  $("enemyName").innerText = G.enemy.name;
+  $("enemyTag").innerText = G.enemy.tag;
+  $("enemyTag").className = "fighter-tag " + (G.enemy.tag === "BOSS" ? "tag-boss" : "tag-normal");
+  $("enemySpriteBox").innerHTML = SPRITES[G.enemy.sprite];
 
-  const eCard = $("enemyCard");
-  eCard.classList.toggle("boss-card", eData.tag === "BOSS");
+  if (G.enemy.tag === "BOSS") $("enemyCard").className = "fighter-card enemy-card boss-card";
+  else $("enemyCard").className = "fighter-card enemy-card";
 
-  $("enemySpriteBox").innerHTML = SPRITES[eData.sprite] || SPRITES.goomba;
-  setHpBar($("enemyHpFill"), $("enemyHpTxt"), G.enemyHp, G.enemy.maxHp);
-  setHpBar($("playerHpFill"), $("playerHpTxt"), G.playerHp, G.playerMaxHp);
-
-  setBadge("enemyBadge", null, "まっている");
-  setBadge("playerBadge", null, "じゅんび");
-
-  if (eData.tag === "BOSS") {
-    $("logBox").textContent = "⚠ BOSS出現！\n" + eData.name + "があらわれた！";
-    showNotice("⚠ BOSS出現！");
-  } else {
-    $("logBox").textContent = eData.name + "があらわれた！\nコマンドを選んでください。";
-  }
-
-  updateStageProgress();
-  disableControls(false);
+  updateHpDisplays();
+  updateProgressDots();
   updateItemButtons();
+
+  $("playerBadge").innerHTML = `<span class="hem">？</span>じゅんび`;
+  $("enemyBadge").innerHTML = `<span class="hem">？</span>まっている`;
+  $("logBox").innerText = `${G.enemy.name}が現れた！\nコマンドを選んでください。`;
 }
 
-// ================================================================
-// ITEMS
-// ================================================================
+function updateHpDisplays() {
+  $("playerHpTxt").innerText = `${G.playerHp} / ${G.playerMaxHp}`;
+  const pPct = Math.max(0, (G.playerHp / G.playerMaxHp) * 100);
+  const pFill = $("playerHpFill");
+  pFill.style.width = pPct + "%";
+  pFill.className = "hp-fill " + (pPct < 30 ? "low" : pPct < 60 ? "medium" : "");
+
+  $("enemyHpTxt").innerText = `${G.enemyHp} / ${G.enemy.maxHp}`;
+  const ePct = Math.max(0, (G.enemyHp / G.enemy.maxHp) * 100);
+  const eFill = $("enemyHpFill");
+  eFill.style.width = ePct + "%";
+  eFill.className = "hp-fill " + (ePct < 30 ? "low" : ePct < 60 ? "medium" : "");
+}
+
 function updateItemButtons() {
-  const map = { mushroom:"itemMushroom", star:"itemStar", flower:"itemFlower", shell:"itemShell" };
-  for (const [key, id] of Object.entries(map)) {
-    const btn = $(id);
-    if (!btn) continue;
-    const used = !G.items[key];
-    btn.disabled = G.locked || used;
-    // show/hide used mark
-    let mark = btn.querySelector(".used-mark");
-    if (used) {
-      if (!mark) {
-        mark = document.createElement("div");
-        mark.className = "used-mark";
-        mark.textContent = "USED";
-        btn.appendChild(mark);
-      }
-    } else {
-      if (mark) mark.remove();
+  setupItemBtn("itemMushroom", G.items.mushroom);
+  setupItemBtn("itemStar", G.items.star);
+  setupItemBtn("itemFlower", G.items.flower);
+  setupItemBtn("itemShell", G.items.shell);
+}
+
+function setupItemBtn(id, count) {
+  const btn = $(id);
+  let mark = btn.querySelector(".used-mark");
+  if (count <= 0) {
+    btn.disabled = true;
+    if (!mark) {
+      mark = document.createElement("span");
+      mark.className = "used-mark";
+      mark.innerHTML = "✖";
+      btn.appendChild(mark);
     }
+  } else {
+    btn.disabled = false;
+    if (mark) mark.remove();
   }
 }
 
-function useItem(key) {
-  if (!G.items[key] || G.locked) return;
-  G.items[key] = false;
+function useItem(type) {
+  if (G.isAnimating || G.items[type] <= 0) return;
+  G.items[type]--;
   updateItemButtons();
 
-  if (key === "mushroom") {
+  if (type === "mushroom") {
     const heal = 30;
-    G.playerHp = clamp(G.playerHp + heal, 0, G.playerMaxHp);
-    setHpBar($("playerHpFill"), $("playerHpTxt"), G.playerHp, G.playerMaxHp);
-    showDmg("playerDmgPop", heal, true);
-    $("logBox").textContent = "🍄 キノコを使った！\nHP が " + heal + " 回復した！";
-  } else if (key === "star") {
-    G.starActive = true;
-    $("logBox").textContent = "⭐ スターを使った！\n次のラウンドは必ず勝つ！";
-    showNotice("⭐ STAR POWER!");
-  } else if (key === "flower") {
+    G.playerHp = Math.min(G.playerMaxHp, G.playerHp + heal);
+    showPop("playerDmgPop", `+${heal}`, true);
+    $("logBox").innerText = `🍄 キノコを使った！\nHPが ${heal} 回復した。`;
+  } else if (type === "flower") {
     const heal = 50;
-    G.playerHp = clamp(G.playerHp + heal, 0, G.playerMaxHp);
-    setHpBar($("playerHpFill"), $("playerHpTxt"), G.playerHp, G.playerMaxHp);
-    showDmg("playerDmgPop", heal, true);
-    $("logBox").textContent = "🌸 フラワーを使った！\nHP が " + heal + " 回復した！";
-  } else if (key === "shell") {
+    G.playerHp = Math.min(G.playerMaxHp, G.playerHp + heal);
+    showPop("playerDmgPop", `+${heal}`, true);
+    $("logBox").innerText = `🌸 フラワーを使った！\nHPが ${heal} 回復した。`;
+  } else if (type === "shell") {
     G.shellActive = true;
-    $("logBox").textContent = "🐢 コウラを使った！\n次の攻撃を半減する！";
-    showNotice("🐢 SHELL GUARD!");
+    $("logBox").innerText = `🐢 コウラを使った！\nこのマウインドの守備力が上がった。`;
+  } else if (type === "star") {
+    G.starActive = true;
+    $("logBox").innerText = `⭐ スターを使った！\n次の勝負は絶対に勝利する！`;
   }
+  updateHpDisplays();
 }
 
-// ================================================================
-// BATTLE
-// ================================================================
 function playRound(playerHand) {
-  if (G.locked) return;
-  G.locked = true;
-  disableControls(true);
+  if (G.isAnimating) return;
+  G.isAnimating = true;
 
-  let enemyHand;
+  const handsArr = ["rock", "paper", "scissors"];
+  let enemyHand = handsArr[Math.floor(Math.random() * 3)];
+
   if (G.starActive) {
-    // force win: pick hand that beats whatever enemy shows
-    enemyHand = randomHand();
-    playerHand = Object.keys(HANDS).find(h => HANDS[h].beats === enemyHand) || playerHand;
-    G.starActive = false;
-  } else {
-    enemyHand = randomHand();
+    if (playerHand === "rock") enemyHand = "scissors";
+    else if (playerHand === "paper") enemyHand = "rock";
+    else enemyHand = "paper";
   }
 
-  setBadge("playerBadge", playerHand, "");
-  setBadge("enemyBadge", enemyHand, "");
+  $("playerBadge").innerHTML = `<span class="hem">${HANDS[playerHand].emoji}</span>${HANDS[playerHand].jp}`;
+  $("enemyBadge").innerHTML = `<span class="hem">${HANDS[enemyHand].emoji}</span>${HANDS[enemyHand].jp}`;
 
-  const result = judge(playerHand, enemyHand);
-  const e = G.enemy;
-  const c = G.char;
-
-  let logMsg = "";
-
-  if (result === "win") {
-    const dmg = c.atk + Math.floor(Math.random() * 8);
-    G.enemyHp = clamp(G.enemyHp - dmg, 0, e.maxHp);
-    setHpBar($("enemyHpFill"), $("enemyHpTxt"), G.enemyHp, e.maxHp);
-    triggerAttack("playerSpriteBox");
-    triggerImpact("enemyCard", "enemySpriteBox");
-    showDmg("enemyDmgPop", dmg, false);
-    logMsg = `${HANDS[playerHand].jp} vs ${HANDS[enemyHand].jp}\n✨ 勝ち！ 敵に ${dmg} ダメージ！`;
-
-  } else if (result === "lose") {
-    let dmg = e.atk + Math.floor(Math.random() * 8);
-    if (G.shellActive) { dmg = Math.floor(dmg / 2); G.shellActive = false; }
-    if (c.def > 0) dmg = Math.max(1, dmg - c.def);
-    G.playerHp = clamp(G.playerHp - dmg, 0, G.playerMaxHp);
-    setHpBar($("playerHpFill"), $("playerHpTxt"), G.playerHp, G.playerMaxHp);
-    triggerAttack("enemySpriteBox");
-    triggerImpact("playerCard", "playerSpriteBox");
-    showDmg("playerDmgPop", dmg, false);
-    logMsg = `${HANDS[playerHand].jp} vs ${HANDS[enemyHand].jp}\n💥 負け！ ${dmg} ダメージを受けた！`;
-
-  } else {
-    logMsg = `${HANDS[playerHand].jp} vs ${HANDS[enemyHand].jp}\n🤝 あいこ！ ダメージなし`;
-  }
-
-  $("logBox").textContent = logMsg;
+  let result = "draw"; 
+  if (HANDS[playerHand].beats === enemyHand) result = "win";
+  else if (HANDS[enemyHand].beats === playerHand) result = "lose";
 
   setTimeout(() => {
-    if (G.playerHp <= 0) {
-      showResult(false); return;
-    }
-    if (G.enemyHp <= 0) {
-      G.score += e.reward;
-      if (c.luck > 0 && Math.random() * 100 < c.luck) {
-        const bonus = Math.floor(e.reward * 0.5);
-        G.score += bonus;
-        showNotice(`🍀 LUCKY! +${bonus}pt`);
+    if (result === "win") {
+      let dmg = G.selectedChar.atk;
+      if (Math.random() * 100 < G.selectedChar.luck) {
+        dmg = Math.floor(dmg * 1.5);
+        triggerFlash();
+        showNotice("CRITICAL!");
       }
-      $("scoreVal").textContent = G.score;
-      showResult(true); return;
+      G.enemyHp = Math.max(0, G.enemyHp - dmg);
+      animateHit("enemySpriteBox", "enemyCard");
+      showPop("enemyDmgPop", `-${dmg}`, false);
+      $("logBox").innerText = `じゃんけん勝利！\n${G.enemy.name}に ${dmg} のダメージ！`;
+    } else if (result === "lose") {
+      let dmg = G.enemy.atk;
+      if (G.shellActive) {
+        dmg = Math.floor(dmg * 0.5) - G.selectedChar.def;
+        if (dmg < 1) dmg = 1;
+      } else {
+        dmg = Math.max(1, dmg - G.selectedChar.def);
+      }
+      G.playerHp = Math.max(0, G.playerHp - dmg);
+      animateHit("playerSpriteBox", "playerCard");
+      showPop("playerDmgPop", `-${dmg}`, false);
+      $("logBox").innerText = `じゃんけん負け...\n${G.enemy.name}から ${dmg} のダメージ！`;
+    } else {
+      $("logBox").innerText = `あいこ！\nお互いダメージなし。`;
     }
-    G.locked = false;
-    disableControls(false);
-    updateItemButtons();
-  }, 700);
+
+    updateHpDisplays();
+    G.shellActive = false;
+    G.starActive = false;
+
+    setTimeout(() => {
+      G.isAnimating = false;
+      checkBattleOver();
+    }, 600);
+
+  }, 400);
 }
 
-// ================================================================
-// RESULT
-// ================================================================
-function showResult(win) {
-  const overlay = $("resultOverlay");
+function animateHit(spriteId, cardId) {
+  const s = $(spriteId); s.classList.add("hit");
+  const c = $(cardId); c.classList.add("shaking");
+  setTimeout(() => {
+    s.classList.remove("hit");
+    c.classList.remove("shaking");
+  }, 280);
+}
+
+function showPop(id, txt, isHeal) {
+  const p = $(id);
+  p.innerText = txt;
+  p.className = "dmg-pop" + (isHeal ? " heal" : "");
+  p.classList.add("show");
+  setTimeout(() => p.classList.remove("show"), 700);
+}
+
+function triggerFlash() {
+  const f = $("flash"); f.classList.add("on");
+  setTimeout(() => f.classList.remove("on"), 220);
+}
+
+function showNotice(txt) {
+  const n = $("notice"); n.innerText = txt;
+  n.classList.add("show");
+  setTimeout(() => n.classList.remove("show"), 1200);
+}
+
+function checkBattleOver() {
+  if (G.enemyHp <= 0) {
+    G.score += G.enemy.reward;
+    $("scoreVal").innerText = G.score;
+    
+    if (G.stage >= STAGE_SEQUENCE.length - 1) {
+      // THẮNG TOÀN BỘ GAME (GAME CLEAR)
+      showResultOverlay(true, true);
+      sendDataToGoogleSheet("WIN"); // Tự động gửi data WIN lên Google Sheet
+    } else {
+      showResultOverlay(true, false);
+    }
+  } else if (G.playerHp <= 0) {
+    // BỊ CHẾT (GAME OVER)
+    showResultOverlay(false, false);
+    sendDataToGoogleSheet("LOSE"); // Tự động gửi data LOSE lên Google Sheet
+  }
+}
+
+function showResultOverlay(isWin, isAllClear) {
+  const o = $("resultOverlay");
   const title = $("resultTitle");
   const sub = $("resultSub");
-  const healTxt = $("resultHeal");
-  const btnNext = $("btnNext");
-  const btnRestart = $("btnRestart");
+  const heal = $("resultHeal");
+  
+  o.classList.add("active");
+  heal.innerText = "";
 
-  const isLastStage = G.stage >= STAGE_SEQUENCE.length - 1;
-
-  if (win) {
-    const isWin = true;
-    const heal = Math.floor(G.playerMaxHp * 0.2);
-    G.playerHp = clamp(G.playerHp + heal, 0, G.playerMaxHp);
-    setHpBar($("playerHpFill"), $("playerHpTxt"), G.playerHp, G.playerMaxHp);
-
-    if (isLastStage) {
-      title.textContent = "🏆 GAME CLEAR!";
-      title.className = "result-title win";
-      sub.textContent = `クッパを倒した！\nスコア: ${G.score} pt`;
-      healTxt.textContent = `+${heal} HP 回復！`;
-      btnNext.style.display = "none";
-      btnRestart.textContent = "▶ タイトルへ";
-      btnRestart.style.display = "block";
+  if (isWin) {
+    title.innerText = isAllClear ? "WORLD CLEAR!" : "STAGE CLEAR!";
+    title.className = "result-title win";
+    sub.innerHTML = `討伐: ${G.enemy.name}<br/>SCORE +${G.enemy.reward}`;
+    
+    if (isAllClear) {
+      $("btnNext").style.display = "none";
+      $("btnRestart").style.display = "inline-block";
+      sub.innerHTML += `<br/><br/>🏆 FINAL SCORE: ${G.score} 🏆`;
     } else {
-      title.textContent = "✨ STAGE CLEAR!";
-      title.className = "result-title win";
-      sub.textContent = `${G.enemy.name} を倒した！\nスコア: +${G.enemy.reward} pt`;
-      healTxt.textContent = `+${heal} HP 回復！`;
-      btnNext.style.display = "block";
-      btnRestart.style.display = "none";
+      $("btnNext").style.display = "inline-block";
+      $("btnRestart").style.display = "none";
+      const hAmt = Math.floor(G.playerMaxHp * 0.2);
+      G.playerHp = Math.min(G.playerMaxHp, G.playerHp + hAmt);
+      heal.innerText = `ステージクリア特典: HPが ${hAmt} 回復した！`;
     }
   } else {
-    title.textContent = "💀 GAME OVER";
+    title.innerText = "GAME OVER";
     title.className = "result-title lose";
-    sub.textContent = `${G.enemy.name}にやられた…\nスコア: ${G.score} pt`;
-    healTxt.textContent = "";
-    btnNext.style.display = "none";
-    btnRestart.textContent = "▶ RETRY";
-    btnRestart.style.display = "block";
+    sub.innerHTML = `${G.enemy.name}に敗北した...<br/>STAGE: ${G.stage + 1}<br/>FINAL SCORE: ${G.score}`;
+    $("btnNext").style.display = "none";
+    $("btnRestart").style.display = "inline-block";
   }
-
-  overlay.classList.add("active");
 }
 
 function nextStage() {
   $("resultOverlay").classList.remove("active");
   G.stage++;
-  loadStage(G.stage);
+  loadStage();
 }
 
 function goTitle() {
   $("resultOverlay").classList.remove("active");
-  G.char = null;
-  buildCharGrid();
   showScreen("titleScreen");
 }
 
-// ================================================================
-// STAT MODAL
-// ================================================================
 function openStatModal() {
-  const c = G.char;
+  const c = G.selectedChar;
   if (!c) return;
-  const preview = $("statCharPreview");
-  preview.innerHTML = SPRITES[c.spriteKey];
+  $("statCharPreview").innerHTML = SPRITES[c.spriteKey];
+  
+  const itemStatus = (type) => G.items[type] > 0 ? "所持" : `<span style='color:#ff6666'>使用済</span>`;
 
-  const content = $("statContent");
-  const itemStatus = (key) => G.items[key] ? "<span style='color:#2ecc71'>あり</span>" : "<span style='color:#e74c3c'>使用済</span>";
-
-  content.innerHTML = `
+  $("statContent").innerHTML = `
     <div class="stat-row"><span class="sl">NAME</span><span class="sv">${c.name}</span></div>
     <div class="stat-row"><span class="sl">HP</span><span class="sv">${G.playerHp} / ${G.playerMaxHp}</span></div>
     <div class="stat-row"><span class="sl">ATK</span><span class="sv">${c.atk}</span></div>
@@ -1714,11 +1294,7 @@ function openStatModal() {
 function closeStatModal() {
   $("statModal").classList.remove("active");
 }
-
-// ================================================================
-// INIT
-// ================================================================
-buildCharGrid();
 </script>
+
 </body>
 </html>
