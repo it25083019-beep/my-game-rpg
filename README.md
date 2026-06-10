@@ -8,7 +8,7 @@
 どちらも、HTML / CSS / JavaScript を1つのHTMLファイル内にまとめたスマートフォン向けWebアプリです。
 
 データもご確認できる。
-https://docs.google.com/spreadsheets/d/1UhJWZSb2M2BpP9Iw6hbbZLwco8n5XEvD2mgWohwgDOs/edit?gid=0#gid=0
+https://docs.google.com/spreadsheets/d/1j1KbQuBsF_GT0Hxh96kHEX2ohJEdKs60ok6Civr0Lh0/edit?gid=0#gid=0
 ---
 
 ## 1. ジャンケンRPG WORLD
