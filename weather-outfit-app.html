@@ -1,0 +1,1130 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>今日のコーデ予報</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Zen+Kaku+Gothic+New:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+/* ════════════════════════════════════════
+   TOKENS & THEMES
+════════════════════════════════════════ */
+:root {
+  /* Default: Sunny */
+  --sky-a: #1a0a00;
+  --sky-b: #3d1500;
+  --sky-c: #7a3000;
+  --orb1: rgba(255,140,0,0.35);
+  --orb2: rgba(255,200,60,0.2);
+  --glass-bg: rgba(255,255,255,0.07);
+  --glass-border: rgba(255,255,255,0.14);
+  --glass-shine: rgba(255,255,255,0.22);
+  --text-hi: #fff9f0;
+  --text-mid: rgba(255,249,240,0.65);
+  --text-lo: rgba(255,249,240,0.35);
+  --accent: #ffb347;
+  --accent2: #ff7a00;
+  --card-shadow: 0 20px 60px rgba(0,0,0,0.45);
+  --glow: 0 0 60px rgba(255,140,0,0.25);
+}
+.theme-rain {
+  --sky-a: #020d1a; --sky-b: #071d35; --sky-c: #0e3558;
+  --orb1: rgba(30,100,200,0.3); --orb2: rgba(80,160,255,0.15);
+  --text-hi: #e8f4ff; --text-mid: rgba(232,244,255,0.6); --text-lo: rgba(232,244,255,0.3);
+  --accent: #5bb8ff; --accent2: #1a7acc;
+  --glow: 0 0 60px rgba(30,120,220,0.25);
+}
+.theme-cloud {
+  --sky-a: #0e1520; --sky-b: #1c2535; --sky-c: #2e3d52;
+  --orb1: rgba(100,140,180,0.3); --orb2: rgba(150,190,230,0.15);
+  --text-hi: #e8edf5; --text-mid: rgba(232,237,245,0.6); --text-lo: rgba(232,237,245,0.3);
+  --accent: #90bde0; --accent2: #5a8cbf;
+  --glow: 0 0 60px rgba(90,140,200,0.2);
+}
+.theme-cold {
+  --sky-a: #020812; --sky-b: #091428; --sky-c: #102040;
+  --orb1: rgba(80,140,220,0.28); --orb2: rgba(180,220,255,0.12);
+  --text-hi: #ddeeff; --text-mid: rgba(221,238,255,0.6); --text-lo: rgba(221,238,255,0.3);
+  --accent: #88ccff; --accent2: #3366cc;
+  --glow: 0 0 60px rgba(60,120,220,0.22);
+}
+.theme-storm {
+  --sky-a: #050508; --sky-b: #0d0d18; --sky-c: #18182a;
+  --orb1: rgba(100,60,200,0.28); --orb2: rgba(60,40,140,0.15);
+  --text-hi: #ede8ff; --text-mid: rgba(237,232,255,0.6); --text-lo: rgba(237,232,255,0.3);
+  --accent: #a088ff; --accent2: #6040cc;
+  --glow: 0 0 60px rgba(100,60,220,0.25);
+}
+
+/* ════════════════════════════════════════
+   RESET & BASE
+════════════════════════════════════════ */
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html, body { height:100%; }
+body {
+  font-family: 'Zen Kaku Gothic New', sans-serif;
+  background: var(--sky-a);
+  color: var(--text-hi);
+  overflow-x: hidden;
+  overscroll-behavior: none;
+  transition: background 0.8s ease;
+}
+
+/* ════════════════════════════════════════
+   AMBIENT BACKGROUND
+════════════════════════════════════════ */
+.ambient {
+  position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background: radial-gradient(ellipse 80% 60% at 30% 20%, var(--orb1), transparent),
+              radial-gradient(ellipse 60% 70% at 80% 70%, var(--orb2), transparent),
+              linear-gradient(170deg, var(--sky-a) 0%, var(--sky-b) 45%, var(--sky-c) 100%);
+  transition: all 0.9s ease;
+}
+.noise {
+  position: fixed; inset: 0; pointer-events: none; z-index: 1; opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 180px;
+}
+/* Particle canvas */
+#particleCanvas { position:fixed; inset:0; z-index:2; pointer-events:none; }
+
+/* ════════════════════════════════════════
+   LAYOUT
+════════════════════════════════════════ */
+.app {
+  position: relative; z-index: 10;
+  max-width: 430px; margin: 0 auto;
+  min-height: 100vh;
+  padding-bottom: 48px;
+}
+
+/* ════════════════════════════════════════
+   HEADER
+════════════════════════════════════════ */
+.header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  padding: 56px 22px 0;
+  animation: fadeDown 0.6s ease both;
+}
+.header-left .eyebrow {
+  font-size: 10px; font-weight: 500; letter-spacing: 0.22em;
+  text-transform: uppercase; color: var(--text-lo);
+}
+.header-left .brand {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 20px; font-weight: 300; font-style: italic;
+  color: var(--text-hi); letter-spacing: 0.04em; margin-top: 2px;
+  line-height: 1.2;
+}
+.header-left .brand em { font-style: normal; color: var(--accent); }
+
+.loc-btn {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 24px; padding: 8px 14px 8px 10px;
+  cursor: pointer; color: var(--text-hi);
+  font-family: 'Zen Kaku Gothic New', sans-serif;
+  font-size: 12px; font-weight: 400;
+  transition: all 0.25s;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  white-space: nowrap; max-width: 160px; overflow: hidden;
+}
+.loc-btn:active { transform: scale(0.95); background: var(--glass-shine); }
+.loc-btn .pin { font-size: 15px; flex-shrink: 0; }
+.loc-btn .loc-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.loc-btn .spinner {
+  width: 12px; height: 12px; border: 2px solid var(--text-lo);
+  border-top-color: var(--accent); border-radius: 50%;
+  animation: spin 0.7s linear infinite; flex-shrink: 0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ════════════════════════════════════════
+   WEATHER HERO CARD
+════════════════════════════════════════ */
+.hero-card {
+  margin: 24px 16px 0;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 28px;
+  padding: 28px 24px 24px;
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  box-shadow: var(--card-shadow), var(--glow);
+  position: relative; overflow: hidden;
+  animation: fadeUp 0.7s 0.1s ease both;
+  transition: box-shadow 0.8s;
+}
+.hero-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--glass-shine), transparent);
+}
+.hero-top {
+  display: flex; align-items: flex-start; justify-content: space-between;
+}
+.hero-temp {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 88px; font-weight: 300; line-height: 0.9;
+  color: var(--text-hi); letter-spacing: -4px;
+}
+.hero-temp sup {
+  font-size: 28px; vertical-align: super;
+  letter-spacing: 0; font-weight: 300;
+  color: var(--accent);
+}
+.hero-icon-wrap {
+  width: 100px; height: 100px; flex-shrink: 0;
+}
+.hero-icon-wrap svg { width: 100%; height: 100%; }
+
+.hero-desc { font-size: 15px; color: var(--accent); font-weight: 500; margin-top: 10px; letter-spacing: 0.04em; }
+.hero-location { font-size: 12px; color: var(--text-mid); margin-top: 4px; letter-spacing: 0.06em; }
+
+.hero-stats {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 22px;
+}
+.stat-pill {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px; padding: 10px 8px;
+  text-align: center;
+}
+.stat-val { font-size: 16px; font-weight: 700; color: var(--text-hi); }
+.stat-label { font-size: 9.5px; color: var(--text-lo); margin-top: 2px; letter-spacing: 0.08em; text-transform: uppercase; }
+
+/* Feels like bar */
+.feelslike-row { display: flex; align-items: center; justify-content: space-between; margin-top: 18px; }
+.feelslike-label { font-size: 11px; color: var(--text-lo); letter-spacing: 0.08em; }
+.feelslike-val { font-size: 13px; font-weight: 600; color: var(--accent); }
+.progress-bar { flex: 1; height: 3px; background: rgba(255,255,255,0.1); border-radius: 2px; margin: 0 12px; overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, var(--accent2), var(--accent)); transition: width 1s ease; }
+
+/* ════════════════════════════════════════
+   HOURLY FORECAST STRIP
+════════════════════════════════════════ */
+.section-label {
+  font-size: 10px; font-weight: 500; letter-spacing: 0.2em;
+  text-transform: uppercase; color: var(--text-lo);
+  padding: 22px 22px 10px;
+  animation: fadeUp 0.7s 0.2s ease both;
+}
+.hourly-strip {
+  display: flex; gap: 10px;
+  padding: 0 16px 4px;
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  animation: fadeUp 0.7s 0.25s ease both;
+}
+.hourly-strip::-webkit-scrollbar { display: none; }
+.hour-chip {
+  flex: 0 0 auto;
+  background: var(--glass-bg); border: 1px solid var(--glass-border);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border-radius: 18px; padding: 10px 14px;
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  min-width: 60px; cursor: default;
+  transition: background 0.2s, transform 0.2s;
+}
+.hour-chip.now { background: rgba(255,255,255,0.14); border-color: var(--accent); }
+.hour-chip:active { transform: scale(0.94); }
+.hour-time { font-size: 10px; color: var(--text-lo); letter-spacing: 0.05em; }
+.hour-icon { font-size: 18px; }
+.hour-temp { font-size: 14px; font-weight: 600; color: var(--text-hi); }
+.hour-chip.now .hour-time { color: var(--accent); font-weight: 600; }
+
+/* ════════════════════════════════════════
+   OUTFIT SECTION
+════════════════════════════════════════ */
+.outfit-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 22px 12px;
+  animation: fadeUp 0.7s 0.3s ease both;
+}
+.outfit-tagline {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 22px; font-weight: 400; font-style: italic;
+  color: var(--text-hi); line-height: 1.2;
+}
+.outfit-tagline em { font-style: normal; color: var(--accent); }
+.outfit-count {
+  font-size: 11px; color: var(--text-lo);
+  background: var(--glass-bg); border: 1px solid var(--glass-border);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  padding: 4px 12px; border-radius: 12px; flex-shrink: 0;
+}
+
+/* ── Outfit carousel ── */
+.outfit-rail {
+  display: flex; gap: 12px;
+  padding: 0 16px 6px;
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  scroll-snap-type: x mandatory;
+  animation: fadeUp 0.7s 0.35s ease both;
+}
+.outfit-rail::-webkit-scrollbar { display: none; }
+
+.o-card {
+  flex: 0 0 138px;
+  scroll-snap-align: start;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 24px; padding: 18px 14px 16px;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  position: relative; overflow: hidden; cursor: pointer;
+  transition: transform 0.18s, box-shadow 0.18s, border-color 0.18s;
+  backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+}
+.o-card::after {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent);
+}
+.o-card:active { transform: scale(0.95) translateY(2px); box-shadow: none; }
+.o-card.featured { border-color: rgba(255,255,255,0.22); }
+
+.o-badge {
+  position: absolute; top: 10px; right: 10px;
+  font-size: 8.5px; font-weight: 700; letter-spacing: 0.1em;
+  color: var(--accent); text-transform: uppercase;
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+  padding: 2px 7px; border-radius: 6px;
+}
+.o-emoji { font-size: 44px; line-height: 1; filter: drop-shadow(0 4px 12px rgba(0,0,0,0.3)); }
+.o-name { font-size: 13px; font-weight: 500; color: var(--text-hi); text-align: center; line-height: 1.3; }
+.o-tip { font-size: 10.5px; color: var(--text-lo); text-align: center; line-height: 1.45; }
+
+/* progress dots */
+.rail-dots {
+  display: flex; justify-content: center; gap: 5px;
+  padding: 10px 0 4px;
+}
+.rdot {
+  height: 3px; border-radius: 2px;
+  background: var(--text-lo); width: 16px;
+  transition: all 0.3s;
+}
+.rdot.on { background: var(--accent); width: 28px; }
+
+/* ════════════════════════════════════════
+   ACTION BUTTONS
+════════════════════════════════════════ */
+.actions {
+  display: flex; gap: 10px; padding: 18px 16px 0;
+  animation: fadeUp 0.7s 0.45s ease both;
+}
+.btn-main {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;
+  height: 54px;
+  background: linear-gradient(130deg, var(--accent2), var(--accent));
+  border: none; border-radius: 17px;
+  font-family: 'Zen Kaku Gothic New', sans-serif;
+  font-size: 12px; font-weight: 700; letter-spacing: 0.14em;
+  color: #fff; cursor: pointer; text-transform: uppercase;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3), 0 2px 8px var(--orb1);
+  transition: transform 0.15s, opacity 0.15s;
+}
+.btn-main:active { transform: scale(0.96); opacity: 0.9; }
+.btn-icon {
+  flex: 0 0 54px; height: 54px;
+  background: var(--glass-bg); border: 1px solid var(--glass-border);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border-radius: 17px; font-size: 20px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: transform 0.15s, background 0.15s;
+}
+.btn-icon:active { transform: scale(0.93); background: var(--glass-shine); }
+.btn-icon.saved { background: rgba(255,80,80,0.15); border-color: rgba(255,100,100,0.3); }
+
+/* ════════════════════════════════════════
+   WEATHER SWITCHER (demo)
+════════════════════════════════════════ */
+.switcher-wrap {
+  padding: 24px 16px 0;
+  animation: fadeUp 0.7s 0.5s ease both;
+}
+.switcher-label {
+  font-size: 9px; color: var(--text-lo); letter-spacing: 0.2em;
+  text-transform: uppercase; text-align: center; margin-bottom: 10px;
+}
+.switcher {
+  display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;
+}
+.sw-btn {
+  background: var(--glass-bg); border: 1px solid var(--glass-border);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  border-radius: 14px; padding: 10px 4px 8px;
+  cursor: pointer; text-align: center;
+  font-family: 'Zen Kaku Gothic New', sans-serif;
+  transition: all 0.2s;
+}
+.sw-btn:active { transform: scale(0.93); }
+.sw-btn.on { background: rgba(255,255,255,0.14); border-color: var(--accent); }
+.sw-emoji { font-size: 18px; display: block; margin-bottom: 3px; }
+.sw-label { font-size: 9px; color: var(--text-mid); display: block; font-weight: 500; }
+.sw-btn.on .sw-label { color: var(--accent); font-weight: 700; }
+
+/* ════════════════════════════════════════
+   DETAIL BOTTOM SHEET
+════════════════════════════════════════ */
+.sheet-overlay {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  opacity: 0; pointer-events: none; transition: opacity 0.35s;
+}
+.sheet-overlay.open { opacity: 1; pointer-events: all; }
+
+.sheet {
+  position: absolute; bottom: 0; left: 50%; transform: translateX(-50%) translateY(100%);
+  width: 100%; max-width: 430px;
+  background: linear-gradient(170deg, var(--sky-b) 0%, var(--sky-a) 100%);
+  border: 1px solid var(--glass-border);
+  border-bottom: none; border-radius: 28px 28px 0 0;
+  padding: 14px 20px 52px;
+  max-height: 78vh; overflow-y: auto;
+  transition: transform 0.45s cubic-bezier(.2, 1.1, .4, 1);
+  box-shadow: 0 -20px 60px rgba(0,0,0,0.5);
+}
+.sheet::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--glass-shine), transparent);
+}
+.sheet-overlay.open .sheet { transform: translateX(-50%) translateY(0); }
+.sheet-handle { width: 36px; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.18); margin: 0 auto 22px; }
+.sheet-close {
+  position: absolute; top: 14px; right: 18px;
+  font-size: 20px; cursor: pointer; color: var(--text-lo); line-height: 1;
+}
+.sheet-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 26px; font-weight: 400;
+  color: var(--text-hi); margin-bottom: 6px;
+}
+.sheet-sub { font-size: 13px; color: var(--text-mid); line-height: 1.7; margin-bottom: 22px; }
+.sheet-items { display: flex; flex-direction: column; gap: 10px; }
+.sheet-item {
+  display: flex; align-items: center; gap: 14px;
+  background: var(--glass-bg); border: 1px solid var(--glass-border);
+  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  border-radius: 18px; padding: 14px 16px;
+  transition: background 0.18s;
+}
+.sheet-item:active { background: var(--glass-shine); }
+.s-emoji { font-size: 32px; flex-shrink: 0; }
+.s-name { font-size: 14px; font-weight: 600; color: var(--text-hi); }
+.s-desc { font-size: 11.5px; color: var(--text-lo); margin-top: 3px; line-height: 1.45; }
+.s-badge {
+  margin-left: auto; font-size: 9px; font-weight: 700;
+  color: var(--accent); border: 1px solid var(--accent);
+  padding: 2px 8px; border-radius: 8px; flex-shrink: 0; letter-spacing: 0.08em;
+}
+
+/* ════════════════════════════════════════
+   TOAST
+════════════════════════════════════════ */
+.toast {
+  position: fixed; bottom: 100px; left: 50%;
+  transform: translateX(-50%) translateY(16px);
+  background: rgba(20,20,20,0.92);
+  border: 1px solid rgba(255,255,255,0.12);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border-radius: 16px; padding: 11px 22px;
+  font-size: 13px; font-weight: 400; color: var(--text-hi);
+  opacity: 0; pointer-events: none; z-index: 300;
+  transition: opacity 0.3s, transform 0.3s; white-space: nowrap;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+.toast.up { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ════════════════════════════════════════
+   LOADING SCREEN
+════════════════════════════════════════ */
+.loading-screen {
+  position: fixed; inset: 0; z-index: 500;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: #050505; transition: opacity 0.6s, visibility 0.6s;
+}
+.loading-screen.hidden { opacity: 0; visibility: hidden; }
+.loading-logo {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 36px; font-weight: 300; font-style: italic;
+  color: #fff; margin-bottom: 32px; letter-spacing: 0.04em;
+}
+.loading-logo em { font-style: normal; color: #ff9a3c; }
+.loading-bar-wrap { width: 160px; height: 2px; background: rgba(255,255,255,0.1); border-radius: 1px; overflow: hidden; }
+.loading-bar { height: 100%; border-radius: 1px; background: linear-gradient(90deg, #ff7a00, #ffcc44); animation: loadProgress 1.8s ease forwards; }
+@keyframes loadProgress { from { width: 0; } to { width: 100%; } }
+.loading-msg { font-size: 11px; color: rgba(255,255,255,0.35); margin-top: 14px; letter-spacing: 0.12em; }
+
+/* ════════════════════════════════════════
+   ANIMATIONS
+════════════════════════════════════════ */
+@keyframes fadeDown { from { opacity: 0; transform: translateY(-14px); } to { opacity: 1; transform: none; } }
+@keyframes fadeUp   { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+
+/* ════════════════════════════════════════
+   WEATHER SVG ANIMATIONS
+════════════════════════════════════════ */
+.sun-rays { animation: raysRotate 18s linear infinite; transform-origin: 50px 50px; }
+@keyframes raysRotate { to { transform: rotate(360deg); } }
+.sun-body { animation: sunBreath 3s ease-in-out infinite; transform-origin: 50px 50px; }
+@keyframes sunBreath { 0%,100%{transform:scale(1);} 50%{transform:scale(1.05);} }
+.cloud-main { animation: cloudDrift 5s ease-in-out infinite; }
+@keyframes cloudDrift { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-4px);} }
+.raindrop { animation: rainAnim 1.3s linear infinite; }
+.raindrop:nth-child(2n) { animation-delay: 0.22s; }
+.raindrop:nth-child(3n) { animation-delay: 0.44s; }
+.raindrop:nth-child(4n) { animation-delay: 0.11s; }
+@keyframes rainAnim { 0%{transform:translateY(-8px);opacity:0;} 30%{opacity:0.9;} 100%{transform:translateY(18px);opacity:0;} }
+.flake { animation: flakeFall 2.4s ease-in-out infinite; }
+.flake:nth-child(2n){ animation-delay: 0.6s; }
+.flake:nth-child(3n){ animation-delay: 1.2s; }
+@keyframes flakeFall { 0%{transform:translateY(-6px) rotate(0deg);opacity:0;} 40%{opacity:1;} 100%{transform:translateY(16px) rotate(180deg);opacity:0;} }
+.lightning { animation: flash 4s ease-in-out infinite; }
+@keyframes flash { 0%,85%,100%{opacity:0;} 87%,91%{opacity:1;} 89%,93%{opacity:0.6;} }
+</style>
+</head>
+<body>
+
+<!-- Loading -->
+<div class="loading-screen" id="loadScreen">
+  <div class="loading-logo">今日の<em>コーデ</em></div>
+  <div class="loading-bar-wrap"><div class="loading-bar"></div></div>
+  <div class="loading-msg" id="loadMsg">位置情報を取得中…</div>
+</div>
+
+<!-- Ambient layers -->
+<div class="ambient" id="ambient"></div>
+<div class="noise"></div>
+<canvas id="particleCanvas"></canvas>
+
+<div class="app" id="app">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-left">
+      <div class="eyebrow" id="dateLabel"></div>
+      <div class="brand">今日の<em>コーデ</em>予報</div>
+    </div>
+    <button class="loc-btn" id="locBtn">
+      <span class="pin">📍</span>
+      <span class="loc-text" id="locText">取得中…</span>
+    </button>
+  </div>
+
+  <!-- HERO CARD -->
+  <div class="hero-card" id="heroCard">
+    <div class="hero-top">
+      <div>
+        <div class="hero-temp"><span id="tempNum">—</span><sup>°</sup></div>
+        <div class="hero-desc" id="heroDesc">読み込み中</div>
+        <div class="hero-location" id="heroLoc">—</div>
+      </div>
+      <div class="hero-icon-wrap" id="heroIcon"></div>
+    </div>
+    <div class="feelslike-row">
+      <span class="feelslike-label">体感温度</span>
+      <div class="progress-bar"><div class="progress-fill" id="feelBar" style="width:60%"></div></div>
+      <span class="feelslike-val" id="feelVal">—°</span>
+    </div>
+    <div class="hero-stats">
+      <div class="stat-pill"><div class="stat-val" id="statHum">—</div><div class="stat-label">湿度</div></div>
+      <div class="stat-pill"><div class="stat-val" id="statWind">—</div><div class="stat-label">風速</div></div>
+      <div class="stat-pill"><div class="stat-val" id="statVis">—</div><div class="stat-label">視程</div></div>
+    </div>
+  </div>
+
+  <!-- HOURLY -->
+  <div class="section-label">時間帯予報</div>
+  <div class="hourly-strip" id="hourlyStrip"></div>
+
+  <!-- OUTFIT -->
+  <div class="outfit-header">
+    <div class="outfit-tagline" id="outfitTagline">本日の<em>スタイル</em></div>
+    <div class="outfit-count" id="outfitCount">— アイテム</div>
+  </div>
+  <div class="outfit-rail" id="outfitRail"></div>
+  <div class="rail-dots" id="railDots"></div>
+
+  <!-- ACTIONS -->
+  <div class="actions">
+    <button class="btn-main" id="btnDetail">
+      <span>✦</span>
+      <span>詳細を見る</span>
+    </button>
+    <button class="btn-icon" id="btnShuffle">🔀</button>
+    <button class="btn-icon" id="btnSave">🤍</button>
+  </div>
+
+  <!-- DEMO SWITCHER -->
+  <div class="switcher-wrap">
+    <div class="switcher-label">天気を切り替え（デモ）</div>
+    <div class="switcher" id="switcher"></div>
+  </div>
+
+</div>
+
+<!-- DETAIL SHEET -->
+<div class="sheet-overlay" id="sheetOverlay">
+  <div class="sheet" id="sheetEl">
+    <div class="sheet-handle"></div>
+    <span class="sheet-close" id="sheetClose">✕</span>
+    <div class="sheet-title" id="sheetTitle"></div>
+    <div class="sheet-sub" id="sheetSub"></div>
+    <div class="sheet-items" id="sheetItems"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+/* ══════════════════════════════════════════
+   CONFIG — Paste your OpenWeatherMap key here
+   Free key: https://openweathermap.org/api
+══════════════════════════════════════════ */
+const OWM_KEY = 'PASTE_YOUR_OPENWEATHERMAP_API_KEY_HERE';
+// If no key or API fails → falls back to simulated data automatically
+
+/* ══════════════════════════════════════════
+   WEATHER DATA CATALOGUE
+══════════════════════════════════════════ */
+const WX = {
+  sunny: {
+    theme:'', desc:'晴れ・猛暑', temp:32, feel:35, hum:'72%', wind:'12km/h', vis:'10km',
+    icon:'sunny', modalTitle:'☀️ 猛暑日コーデ',
+    modalSub:'気温32°Cの猛暑。熱中症・紫外線対策を最優先に。通気性の良い素材を選び、こまめに水分補給を。',
+    tagline:'涼しく<em>快適</em>に',
+    hourly:[
+      {t:'今',ic:'☀️',deg:32},{t:'13時',ic:'🌤',deg:33},{t:'15時',ic:'☀️',deg:34},
+      {t:'17時',ic:'🌤',deg:31},{t:'19時',ic:'🌆',deg:28},{t:'21時',ic:'🌙',deg:26},
+    ],
+    outfits:[
+      {e:'👕',n:'半袖Tシャツ',t:'吸湿速乾素材がベスト',b:'必須'},
+      {e:'🩳',n:'ショートパンツ',t:'軽量デニムがおすすめ',b:''},
+      {e:'🧢',n:'UVカットキャップ',t:'日よけに必須',b:'UV対策'},
+      {e:'🕶️',n:'サングラス',t:'偏光レンズが快適',b:''},
+      {e:'🧴',n:'日焼け止め',t:'SPF50+ PA++++',b:'SPF50+'},
+      {e:'👟',n:'メッシュスニーカー',t:'通気性最優先',b:''},
+      {e:'💧',n:'水筒',t:'熱中症予防に',b:'重要'},
+      {e:'🌂',n:'折り畳み日傘',t:'UV遮断率99%以上',b:''},
+    ],
+  },
+  rain: {
+    theme:'theme-rain', desc:'雨・蒸し暑い', temp:24, feel:27, hum:'89%', wind:'8km/h', vis:'4km',
+    icon:'rain', modalTitle:'🌧 雨の日コーデ',
+    modalSub:'気温24°Cで雨。防水アイテムを揃えつつ、蒸し暑さに対応できる通気性も大切。濡れを想定したカラー選びを。',
+    tagline:'雨でも<em>おしゃれ</em>に',
+    hourly:[
+      {t:'今',ic:'🌧',deg:24},{t:'13時',ic:'🌧',deg:23},{t:'15時',ic:'⛈️',deg:22},
+      {t:'17時',ic:'🌧',deg:23},{t:'19時',ic:'🌦',deg:22},{t:'21時',ic:'🌥',deg:21},
+    ],
+    outfits:[
+      {e:'☂️',n:'折り畳み傘',t:'コンパクト収納可能',b:'必須'},
+      {e:'🧥',n:'薄手レインコート',t:'蒸れにくいゴアテックス',b:''},
+      {e:'👖',n:'ダークパンツ',t:'濡れが目立ちにくい',b:''},
+      {e:'👞',n:'防水スニーカー',t:'ゴアテックス素材推奨',b:'防水'},
+      {e:'👜',n:'防水バッグ',t:'ファスナー付き完全防水',b:''},
+      {e:'👚',n:'速乾インナー',t:'汗や雨をすぐ乾かす',b:'速乾'},
+    ],
+  },
+  cloud: {
+    theme:'theme-cloud', desc:'曇り・過ごしやすい', temp:26, feel:25, hum:'65%', wind:'15km/h', vis:'8km',
+    icon:'cloud', modalTitle:'⛅ 曇りコーデ',
+    modalSub:'気温26°Cの過ごしやすい曇り空。長袖一枚で十分ですが、急な気温変化に備えて羽織りを一枚携帯すると安心。',
+    tagline:'軽やかな<em>春秋</em>スタイル',
+    hourly:[
+      {t:'今',ic:'⛅',deg:26},{t:'13時',ic:'🌤',deg:27},{t:'15時',ic:'⛅',deg:26},
+      {t:'17時',ic:'☁️',deg:24},{t:'19時',ic:'🌥',deg:22},{t:'21時',ic:'☁️',deg:21},
+    ],
+    outfits:[
+      {e:'👕',n:'長袖シャツ',t:'急な気温変化に対応',b:''},
+      {e:'👖',n:'チノパン',t:'きれいめカジュアル',b:''},
+      {e:'🧣',n:'薄手スカーフ',t:'冷房対策にも◎',b:''},
+      {e:'👟',n:'ローカットスニーカー',t:'どんなコーデにも',b:''},
+      {e:'🎒',n:'デイパック',t:'荷物が増えても安心',b:''},
+      {e:'🕶️',n:'サングラス',t:'雲の切れ間に備えて',b:''},
+    ],
+  },
+  cold: {
+    theme:'theme-cold', desc:'寒い・防寒必須', temp:8, feel:4, hum:'55%', wind:'22km/h', vis:'10km',
+    icon:'cold', modalTitle:'❄️ 防寒コーデ',
+    modalSub:'気温8°Cの寒い日。重ね着が基本。首・手首・足首の「三首」をしっかり温めることが防寒の最重要ポイントです。',
+    tagline:'あたたかく<em>スタイリッシュ</em>に',
+    hourly:[
+      {t:'今',ic:'❄️',deg:8},{t:'13時',ic:'🌥',deg:10},{t:'15時',ic:'❄️',deg:9},
+      {t:'17時',ic:'🌨',deg:7},{t:'19時',ic:'❄️',deg:5},{t:'21時',ic:'🌙',deg:4},
+    ],
+    outfits:[
+      {e:'🧥',n:'厚手ダウンコート',t:'700フィルパワー以上',b:'必須'},
+      {e:'🧤',n:'防風グローブ',t:'スマホ対応素材',b:''},
+      {e:'🧣',n:'ウールマフラー',t:'首元は必ず保温',b:'必須'},
+      {e:'🎿',n:'ニット帽',t:'体温の20%は頭から',b:''},
+      {e:'👢',n:'防水ブーツ',t:'防水ソールが安心',b:''},
+      {e:'🧦',n:'厚手ウールソックス',t:'足元からの冷気を遮断',b:'暖か'},
+      {e:'🧶',n:'ニットセーター',t:'ウール or カシミヤ',b:''},
+    ],
+  },
+  storm: {
+    theme:'theme-storm', desc:'嵐・外出注意', temp:18, feel:14, hum:'95%', wind:'45km/h', vis:'1km',
+    icon:'storm', modalTitle:'⛈️ 嵐コーデ',
+    modalSub:'暴風雨。できるだけ外出を控えましょう。やむを得ない外出時は完全防水装備が必須です。',
+    tagline:'<em>安全第一</em>で',
+    hourly:[
+      {t:'今',ic:'⛈️',deg:18},{t:'13時',ic:'⛈️',deg:17},{t:'15時',ic:'🌪️',deg:16},
+      {t:'17時',ic:'⛈️',deg:17},{t:'19時',ic:'🌧',deg:18},{t:'21時',ic:'🌧',deg:17},
+    ],
+    outfits:[
+      {e:'🌂',n:'大型防風傘',t:'風速15m以上対応',b:'必須'},
+      {e:'🧥',n:'完全防水レインスーツ',t:'上下セットが理想',b:'防水'},
+      {e:'👢',n:'長靴',t:'浸水を完全ブロック',b:'必須'},
+      {e:'🎒',n:'防水バックパック',t:'大切な荷物を守る',b:''},
+      {e:'📱',n:'モバイルバッテリー',t:'緊急連絡用に満充電',b:'重要'},
+    ],
+  },
+};
+
+/* ══════════════════════════════════════════
+   SVG ICONS
+══════════════════════════════════════════ */
+function makeSVG(type) {
+  const svgs = {
+    sunny: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <g class="sun-rays">
+        ${Array.from({length:12},(_,i)=>{
+          const a=i*30*Math.PI/180, r1=34, r2=44;
+          return `<line x1="${50+r1*Math.cos(a)}" y1="${50+r1*Math.sin(a)}" x2="${50+r2*Math.cos(a)}" y2="${50+r2*Math.sin(a)}" stroke="#FFD060" stroke-width="2.5" stroke-linecap="round" opacity="0.8"/>`;
+        }).join('')}
+      </g>
+      <circle class="sun-body" cx="50" cy="50" r="20" fill="#FFD060"/>
+      <circle cx="50" cy="50" r="16" fill="#FFE879"/>
+      <circle cx="44" cy="46" r="4" fill="rgba(255,255,255,0.28)"/>
+      <circle cx="54" cy="43" r="2" fill="rgba(255,255,255,0.18)"/>
+    </svg>`,
+
+    rain: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <g class="cloud-main">
+        <ellipse cx="50" cy="44" rx="26" ry="16" fill="#6899c4" opacity="0.9"/>
+        <ellipse cx="35" cy="50" rx="17" ry="13" fill="#7aaad4"/>
+        <ellipse cx="65" cy="50" rx="17" ry="13" fill="#7aaad4"/>
+        <ellipse cx="50" cy="54" rx="28" ry="11" fill="#9dc5e0"/>
+      </g>
+      <line class="raindrop" x1="36" y1="68" x2="31" y2="80" stroke="#5588bb" stroke-width="2.2" stroke-linecap="round"/>
+      <line class="raindrop" x1="47" y1="68" x2="42" y2="80" stroke="#5588bb" stroke-width="2.2" stroke-linecap="round"/>
+      <line class="raindrop" x1="58" y1="68" x2="53" y2="80" stroke="#5588bb" stroke-width="2.2" stroke-linecap="round"/>
+      <line class="raindrop" x1="69" y1="68" x2="64" y2="80" stroke="#5588bb" stroke-width="2.2" stroke-linecap="round"/>
+      <line class="raindrop" x1="41" y1="78" x2="36" y2="90" stroke="#5588bb" stroke-width="2.2" stroke-linecap="round"/>
+      <line class="raindrop" x1="62" y1="76" x2="57" y2="88" stroke="#5588bb" stroke-width="2.2" stroke-linecap="round"/>
+    </svg>`,
+
+    cloud: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="36" cy="46" r="9" fill="#FFD060" opacity="0.85"/>
+      ${Array.from({length:6},(_,i)=>{
+        const a=i*60*Math.PI/180;
+        return `<line x1="${36+13*Math.cos(a)}" y1="${46+13*Math.sin(a)}" x2="${36+17*Math.cos(a)}" y2="${46+17*Math.sin(a)}" stroke="#FFD060" stroke-width="2" stroke-linecap="round" opacity="0.7"/>`;
+      }).join('')}
+      <g class="cloud-main">
+        <ellipse cx="60" cy="56" rx="24" ry="15" fill="#aac4d8" opacity="0.95"/>
+        <ellipse cx="46" cy="62" rx="16" ry="12" fill="#c0d8ea"/>
+        <ellipse cx="74" cy="62" rx="16" ry="12" fill="#c0d8ea"/>
+        <ellipse cx="60" cy="66" rx="26" ry="10" fill="#d8eaf6"/>
+      </g>
+    </svg>`,
+
+    cold: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <line x1="50" y1="14" x2="50" y2="86" stroke="#88c8ff" stroke-width="3" stroke-linecap="round"/>
+      <line x1="14" y1="50" x2="86" y2="50" stroke="#88c8ff" stroke-width="3" stroke-linecap="round"/>
+      <line x1="26" y1="26" x2="74" y2="74" stroke="#88c8ff" stroke-width="3" stroke-linecap="round"/>
+      <line x1="74" y1="26" x2="26" y2="74" stroke="#88c8ff" stroke-width="3" stroke-linecap="round"/>
+      <line x1="50" y1="14" x2="44" y2="22" stroke="#88c8ff" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="50" y1="14" x2="56" y2="22" stroke="#88c8ff" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="50" y1="86" x2="44" y2="78" stroke="#88c8ff" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="50" y1="86" x2="56" y2="78" stroke="#88c8ff" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="14" y1="50" x2="22" y2="44" stroke="#88c8ff" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="14" y1="50" x2="22" y2="56" stroke="#88c8ff" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="86" y1="50" x2="78" y2="44" stroke="#88c8ff" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="86" y1="50" x2="78" y2="56" stroke="#88c8ff" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="50" cy="50" r="7" fill="#c8e8ff"/>
+      <circle class="flake" cx="38" cy="74" r="3" fill="#88c8ff" opacity="0.9"/>
+      <circle class="flake" cx="55" cy="82" r="2.5" fill="#88c8ff" opacity="0.8"/>
+      <circle class="flake" cx="68" cy="70" r="3" fill="#88c8ff" opacity="0.9"/>
+    </svg>`,
+
+    storm: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <g class="cloud-main">
+        <ellipse cx="50" cy="38" rx="30" ry="18" fill="#3a3a5a" opacity="0.95"/>
+        <ellipse cx="34" cy="46" rx="20" ry="15" fill="#4a4a6a"/>
+        <ellipse cx="66" cy="46" rx="20" ry="15" fill="#4a4a6a"/>
+        <ellipse cx="50" cy="52" rx="32" ry="12" fill="#5a5a7a"/>
+      </g>
+      <polyline class="lightning" points="54,58 46,72 52,72 44,88" fill="none" stroke="#ffe060" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      <line class="raindrop" x1="32" y1="64" x2="26" y2="78" stroke="#4466aa" stroke-width="2" stroke-linecap="round"/>
+      <line class="raindrop" x1="70" y1="64" x2="64" y2="78" stroke="#4466aa" stroke-width="2" stroke-linecap="round"/>
+      <line class="raindrop" x1="76" y1="70" x2="70" y2="84" stroke="#4466aa" stroke-width="2" stroke-linecap="round"/>
+    </svg>`,
+  };
+  return svgs[type] || svgs.sunny;
+}
+
+/* ══════════════════════════════════════════
+   PARTICLE SYSTEM
+══════════════════════════════════════════ */
+const canvas = document.getElementById('particleCanvas');
+const ctx = canvas.getContext('2d');
+let particles = [];
+let particleType = 'none';
+
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+function initParticles(type) {
+  particleType = type;
+  particles = [];
+  const count = type === 'rain' ? 55 : type === 'cold' ? 35 : type === 'storm' ? 70 : 0;
+  for (let i = 0; i < count; i++) {
+    particles.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      speed: type === 'rain' || type === 'storm' ? 3 + Math.random() * 4 : 0.5 + Math.random() * 1.5,
+      angle: type === 'storm' ? 0.4 : type === 'rain' ? 0.15 : Math.random() * Math.PI * 2,
+      size: type === 'cold' ? 2 + Math.random() * 3 : 1.5,
+      opacity: 0.1 + Math.random() * 0.35,
+      drift: (Math.random() - 0.5) * 0.5,
+    });
+  }
+}
+
+function drawParticles() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (!particles.length) return;
+  particles.forEach(p => {
+    ctx.save();
+    ctx.globalAlpha = p.opacity;
+    if (particleType === 'cold') {
+      ctx.fillStyle = '#a8d8ff';
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      ctx.strokeStyle = particleType === 'storm' ? '#4466aa' : '#5588cc';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      const len = particleType === 'storm' ? 16 : 10;
+      ctx.moveTo(p.x, p.y);
+      ctx.lineTo(p.x + Math.sin(p.angle) * len, p.y + Math.cos(p.angle) * len);
+      ctx.stroke();
+    }
+    ctx.restore();
+    p.y += p.speed;
+    p.x += p.drift;
+    if (p.y > canvas.height + 20) { p.y = -20; p.x = Math.random() * canvas.width; }
+    if (p.x > canvas.width + 20) { p.x = -20; }
+    if (p.x < -20) { p.x = canvas.width + 20; }
+  });
+  requestAnimationFrame(drawParticles);
+}
+drawParticles();
+
+/* ══════════════════════════════════════════
+   STATE
+══════════════════════════════════════════ */
+let currentKey = 'sunny';
+let savedState = false;
+let locationName = 'TP.HCM';
+let lat = null, lon = null;
+
+/* ══════════════════════════════════════════
+   DATE
+══════════════════════════════════════════ */
+function setDate() {
+  const now = new Date();
+  const wd = ['日','月','火','水','木','金','土'];
+  document.getElementById('dateLabel').textContent =
+    `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日（${wd[now.getDay()]}）`;
+}
+
+/* ══════════════════════════════════════════
+   GEOLOCATION → REVERSE GEOCODE → OWM
+══════════════════════════════════════════ */
+async function getLocation() {
+  document.getElementById('loadMsg').textContent = '位置情報を取得中…';
+  document.getElementById('locText').textContent = '取得中…';
+
+  return new Promise((resolve) => {
+    if (!navigator.geolocation) {
+      resolve(false);
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        lat = pos.coords.latitude;
+        lon = pos.coords.longitude;
+        document.getElementById('loadMsg').textContent = '天気データを取得中…';
+        // Reverse geocode with nominatim (no key needed)
+        try {
+          const geoRes = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=ja`,
+            { headers: { 'Accept-Language': 'ja' } }
+          );
+          const geoData = await geoRes.json();
+          const addr = geoData.address;
+          locationName = addr.city || addr.town || addr.village || addr.county || addr.state || '現在地';
+        } catch { locationName = '現在地'; }
+        resolve(true);
+      },
+      () => resolve(false),
+      { timeout: 8000, maximumAge: 300000 }
+    );
+  });
+}
+
+async function fetchWeatherFromOWM() {
+  if (!lat || !lon) return null;
+  if (OWM_KEY === 'PASTE_YOUR_OPENWEATHERMAP_API_KEY_HERE') return null;
+  try {
+    const res = await fetch(
+      `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${OWM_KEY}&units=metric&lang=ja`
+    );
+    if (!res.ok) return null;
+    const d = await res.json();
+    return d;
+  } catch { return null; }
+}
+
+function owmToKey(owmData) {
+  if (!owmData) return null;
+  const id = owmData.weather[0].id;
+  if (id >= 200 && id < 300) return 'storm';
+  if (id >= 300 && id < 600) return 'rain';
+  if (id >= 600 && id < 700) return 'cold';
+  if (id >= 700 && id < 800) return 'cloud';
+  if (id === 800) return 'sunny';
+  if (id > 800) return 'cloud';
+  return 'sunny';
+}
+
+/* ══════════════════════════════════════════
+   RENDER
+══════════════════════════════════════════ */
+function render(key, owmData) {
+  currentKey = key;
+  const d = WX[key];
+
+  // Theme
+  document.body.classList.remove('theme-rain','theme-cloud','theme-cold','theme-storm');
+  if (d.theme) document.body.classList.add(d.theme);
+
+  // Icon
+  document.getElementById('heroIcon').innerHTML = makeSVG(d.icon);
+
+  // Temp — use real data if available
+  const temp = owmData ? Math.round(owmData.main.temp) : d.temp;
+  const feel = owmData ? Math.round(owmData.main.feels_like) : d.feel;
+  const hum  = owmData ? owmData.main.humidity + '%' : d.hum;
+  const wind = owmData ? Math.round(owmData.wind.speed * 3.6) + 'km/h' : d.wind;
+  const vis  = owmData ? (owmData.visibility / 1000).toFixed(1) + 'km' : d.vis;
+  const descText = owmData ? owmData.weather[0].description : d.desc;
+
+  document.getElementById('tempNum').textContent = temp;
+  document.getElementById('heroDesc').textContent = descText;
+  document.getElementById('heroLoc').textContent = '📍 ' + locationName;
+  document.getElementById('feelVal').textContent = feel + '°';
+  document.getElementById('statHum').textContent = hum;
+  document.getElementById('statWind').textContent = wind;
+  document.getElementById('statVis').textContent = vis;
+  document.getElementById('locText').textContent = locationName;
+
+  // Feel bar (map temp 0-42°C to 0-100%)
+  const pct = Math.min(100, Math.max(5, ((feel - 0) / 42) * 100));
+  document.getElementById('feelBar').style.width = pct + '%';
+
+  // Hourly
+  const hourlyEl = document.getElementById('hourlyStrip');
+  hourlyEl.innerHTML = '';
+  d.hourly.forEach((h, i) => {
+    const chip = document.createElement('div');
+    chip.className = 'hour-chip' + (i === 0 ? ' now' : '');
+    chip.innerHTML = `<div class="hour-time">${h.t}</div><div class="hour-icon">${h.ic}</div><div class="hour-temp">${h.deg}°</div>`;
+    hourlyEl.appendChild(chip);
+  });
+
+  // Outfit tagline
+  document.getElementById('outfitTagline').innerHTML = d.tagline;
+  document.getElementById('outfitCount').textContent = d.outfits.length + ' アイテム';
+
+  // Outfit cards
+  const rail = document.getElementById('outfitRail');
+  rail.innerHTML = '';
+  d.outfits.forEach((item, i) => {
+    const card = document.createElement('div');
+    card.className = 'o-card' + (i < 2 ? ' featured' : '');
+    card.innerHTML = `
+      ${item.b ? `<div class="o-badge">${item.b}</div>` : ''}
+      <div class="o-emoji">${item.e}</div>
+      <div class="o-name">${item.n}</div>
+      <div class="o-tip">${item.t}</div>
+    `;
+    card.addEventListener('click', () => toast('✦ ' + item.n));
+    rail.appendChild(card);
+  });
+
+  // Dots
+  const dotsEl = document.getElementById('railDots');
+  const dotCount = Math.ceil(d.outfits.length / 2);
+  dotsEl.innerHTML = '';
+  for (let i = 0; i < dotCount; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'rdot' + (i === 0 ? ' on' : '');
+    dotsEl.appendChild(dot);
+  }
+  rail.addEventListener('scroll', () => {
+    const idx = Math.round(rail.scrollLeft / ((138 + 12) * 2));
+    dotsEl.querySelectorAll('.rdot').forEach((dot, j) => {
+      dot.classList.toggle('on', j === Math.min(idx, dotCount - 1));
+    });
+  }, { passive: true });
+
+  // Particles
+  const ptype = key === 'rain' ? 'rain' : key === 'storm' ? 'storm' : key === 'cold' ? 'cold' : 'none';
+  initParticles(ptype);
+
+  // Switcher highlight
+  document.querySelectorAll('.sw-btn').forEach(b => b.classList.toggle('on', b.dataset.k === key));
+
+  // Reset save
+  savedState = false;
+  document.getElementById('btnSave').textContent = '🤍';
+  document.getElementById('btnSave').classList.remove('saved');
+}
+
+/* ══════════════════════════════════════════
+   SHEET MODAL
+══════════════════════════════════════════ */
+function openSheet() {
+  const d = WX[currentKey];
+  document.getElementById('sheetTitle').textContent = d.modalTitle;
+  document.getElementById('sheetSub').textContent = d.modalSub;
+  const container = document.getElementById('sheetItems');
+  container.innerHTML = '';
+  d.outfits.forEach(item => {
+    const el = document.createElement('div');
+    el.className = 'sheet-item';
+    el.innerHTML = `
+      <div class="s-emoji">${item.e}</div>
+      <div style="flex:1">
+        <div class="s-name">${item.n}</div>
+        <div class="s-desc">${item.t}</div>
+      </div>
+      ${item.b ? `<div class="s-badge">${item.b}</div>` : ''}
+    `;
+    container.appendChild(el);
+  });
+  document.getElementById('sheetOverlay').classList.add('open');
+}
+
+function closeSheet() {
+  document.getElementById('sheetOverlay').classList.remove('open');
+}
+
+/* ══════════════════════════════════════════
+   TOAST
+══════════════════════════════════════════ */
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('up');
+  clearTimeout(window._tt);
+  window._tt = setTimeout(() => el.classList.remove('up'), 2200);
+}
+
+/* ══════════════════════════════════════════
+   SWITCHER BUILD
+══════════════════════════════════════════ */
+function buildSwitcher() {
+  const data = [
+    { k:'sunny', emoji:'☀️', label:'晴れ' },
+    { k:'rain',  emoji:'🌧', label:'雨' },
+    { k:'cloud', emoji:'⛅', label:'曇り' },
+    { k:'cold',  emoji:'❄️', label:'寒い' },
+    { k:'storm', emoji:'⛈️', label:'嵐' },
+  ];
+  const el = document.getElementById('switcher');
+  data.forEach(sw => {
+    const btn = document.createElement('button');
+    btn.className = 'sw-btn' + (sw.k === currentKey ? ' on' : '');
+    btn.dataset.k = sw.k;
+    btn.innerHTML = `<span class="sw-emoji">${sw.emoji}</span><span class="sw-label">${sw.label}</span>`;
+    btn.addEventListener('click', () => render(sw.k, null));
+    el.appendChild(btn);
+  });
+}
+
+/* ══════════════════════════════════════════
+   INIT
+══════════════════════════════════════════ */
+async function init() {
+  setDate();
+  buildSwitcher();
+
+  // Events
+  document.getElementById('btnDetail').addEventListener('click', openSheet);
+  document.getElementById('sheetOverlay').addEventListener('click', e => { if(e.target.id==='sheetOverlay') closeSheet(); });
+  document.getElementById('sheetClose').addEventListener('click', closeSheet);
+  document.getElementById('btnShuffle').addEventListener('click', () => {
+    const rail = document.getElementById('outfitRail');
+    const items = WX[currentKey].outfits;
+    const ri = Math.floor(Math.random() * (items.length - 1));
+    rail.scrollTo({ left: ri * (138 + 12), behavior: 'smooth' });
+    toast('🔀 コーデをシャッフルしました');
+  });
+  document.getElementById('btnSave').addEventListener('click', () => {
+    savedState = !savedState;
+    const btn = document.getElementById('btnSave');
+    btn.textContent = savedState ? '❤️' : '🤍';
+    btn.classList.toggle('saved', savedState);
+    toast(savedState ? '❤️ コーデを保存しました' : 'コーデの保存を解除しました');
+  });
+  document.getElementById('locBtn').addEventListener('click', async () => {
+    document.getElementById('locText').innerHTML = '<span class="spinner"></span>';
+    const ok = await getLocation();
+    if (ok) {
+      const owm = await fetchWeatherFromOWM();
+      const key = owmToKey(owm) || currentKey;
+      render(key, owm);
+      toast('📍 ' + locationName + ' の天気を取得しました');
+    } else {
+      document.getElementById('locText').textContent = locationName;
+      toast('位置情報の取得に失敗しました');
+    }
+  });
+
+  // Try to get real location on load
+  const located = await getLocation();
+  let owmData = null;
+  let weatherKey = 'sunny';
+
+  if (located) {
+    owmData = await fetchWeatherFromOWM();
+    weatherKey = owmToKey(owmData) || 'sunny';
+  }
+
+  render(weatherKey, owmData);
+
+  // Hide loading
+  setTimeout(() => {
+    document.getElementById('loadScreen').classList.add('hidden');
+  }, 400);
+}
+
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,1724 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>ジャンケンRPG WORLD</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+  :root {
+    --sky: #5c94fc;
+    --sky2: #9ab8ff;
+    --ground: #e86a17;
+    --ground2: #c85000;
+    --brick: #c84c0c;
+    --coin: #ffd700;
+    --mario-red: #e52222;
+    --mario-blue: #2b7fff;
+    --text: #fff;
+    --shadow: rgba(0,0,0,0.5);
+    --panel-bg: rgba(0,0,0,0.82);
+    --panel-border: rgba(255,255,255,0.18);
+    --hp-green: #2ecc40;
+    --hp-red: #ff2222;
+    --item-gold: #ffd700;
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
+
+  html, body {
+    min-height: 100%;
+    overflow-x: hidden;
+    font-family: 'Press Start 2P', monospace;
+    color: var(--text);
+    background: var(--sky);
+    touch-action: manipulation;
+  }
+
+  /* ===================== PARALLAX SKY ===================== */
+  .world-bg {
+    position: fixed;
+    inset: 0;
+    z-index: -3;
+    background: linear-gradient(180deg, #5c94fc 0%, #9ab8ff 60%, #c8e4ff 100%);
+    overflow: hidden;
+  }
+  .world-bg .cloud {
+    position: absolute;
+    background: white;
+    border-radius: 999px;
+    opacity: 0.9;
+    image-rendering: pixelated;
+  }
+  .c1{width:80px;height:28px;top:8%;left:5%;animation:cloudMove 18s linear infinite;}
+  .c2{width:56px;height:20px;top:18%;left:60%;animation:cloudMove 24s linear infinite 4s;}
+  .c3{width:100px;height:34px;top:12%;left:35%;animation:cloudMove 20s linear infinite 8s;}
+  .c1::before,.c2::before,.c3::before{
+    content:"";position:absolute;background:white;border-radius:999px;
+    width:52%;height:150%;top:-60%;left:20%;
+  }
+  .c1::after,.c2::after,.c3::after{
+    content:"";position:absolute;background:white;border-radius:999px;
+    width:40%;height:120%;top:-40%;right:18%;
+  }
+
+  /* HILLS pixel style */
+  .world-bg .hill {
+    position: absolute;
+    bottom: 0;
+    border-radius: 50% 50% 0 0;
+    opacity: 0.22;
+  }
+  .h1{width:220px;height:100px;background:#3a8a30;left:-20px;}
+  .h2{width:300px;height:140px;background:#2e7a28;right:-40px;}
+
+  /* GROUND BAR */
+  .ground-strip {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    z-index: -2;
+    background: linear-gradient(180deg, var(--ground) 0 16px, var(--ground2) 16px);
+    border-top: 4px solid #a83e00;
+  }
+  .ground-strip::before {
+    content:"";
+    position:absolute;
+    inset:0;
+    background: repeating-linear-gradient(90deg,
+      rgba(255,255,255,0.08) 0 2px,
+      transparent 2px 32px
+    );
+  }
+
+  @keyframes cloudMove {
+    from{transform:translateX(0);}
+    to{transform:translateX(110vw);}
+  }
+
+  /* ===================== SCREENS ===================== */
+  .screen {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    padding: 20px;
+    overflow-y: auto;
+  }
+  .screen.active { display: flex; }
+
+  /* ===================== TITLE SCREEN ===================== */
+  #titleScreen {
+    background: linear-gradient(180deg, #2442a0 0%, #1a2d78 100%);
+    gap: 18px;
+  }
+  .title-logo {
+    text-align: center;
+    margin-bottom: 8px;
+  }
+  .title-logo .sub {
+    font-size: 10px;
+    color: #ffd700;
+    letter-spacing: 0.12em;
+    margin-bottom: 12px;
+    text-shadow: 2px 2px 0 #8b6200;
+  }
+  .title-logo h1 {
+    font-size: clamp(18px, 5vw, 26px);
+    color: #ffd700;
+    text-shadow: 3px 3px 0 #8b6200, 6px 6px 0 rgba(0,0,0,0.4);
+    line-height: 1.4;
+  }
+  .mario-castle-deco {
+    width: 120px;
+    margin: 0 auto 4px;
+  }
+  .press-start {
+    font-size: 12px;
+    color: #fff;
+    animation: blink 1s step-end infinite;
+    margin-top: 8px;
+  }
+  @keyframes blink { 50%{opacity:0;} }
+
+  /* ===================== CHARACTER SELECT ===================== */
+  #selectScreen {
+    background: linear-gradient(180deg, #1a2d78, #0d1a4a);
+    gap: 14px;
+  }
+  .select-title {
+    font-size: 13px;
+    color: #ffd700;
+    text-shadow: 2px 2px 0 #6b4400;
+    text-align: center;
+    margin-bottom: 6px;
+  }
+  .char-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    width: 100%;
+    max-width: 400px;
+  }
+  .char-card {
+    background: rgba(0,0,0,0.7);
+    border: 3px solid rgba(255,255,255,0.2);
+    border-radius: 14px;
+    padding: 14px 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s, transform 0.1s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  .char-card:hover, .char-card.selected {
+    border-color: #ffd700;
+    transform: scale(1.04);
+    background: rgba(255,215,0,0.12);
+  }
+  .char-card svg { width: 72px; height: 72px; }
+  .char-name { font-size: 9px; color: #ffd700; }
+  .char-stats { font-size: 7px; color: #aac8ff; line-height: 2; }
+  .char-desc { font-size: 7px; color: rgba(255,255,255,0.6); line-height: 1.6; }
+  .btn-start {
+    background: linear-gradient(180deg, #ffd700, #ff8c00);
+    color: #1a0000;
+    border: 3px solid #8b4500;
+    border-radius: 10px;
+    padding: 12px 32px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    box-shadow: 0 5px 0 #5a2d00, 0 10px 20px rgba(0,0,0,0.4);
+    transition: transform 0.08s, box-shadow 0.08s;
+    margin-top: 6px;
+  }
+  .btn-start:active { transform: translateY(4px); box-shadow: 0 1px 0 #5a2d00; }
+  .btn-start:disabled { filter: grayscale(0.7) brightness(0.6); cursor: not-allowed; }
+
+  /* ===================== GAME SCREEN ===================== */
+  #gameScreen {
+    background: transparent;
+    flex-direction: column;
+    gap: 0;
+    padding: 0;
+    justify-content: flex-start;
+    overflow-y: auto;
+    padding-bottom: 72px;
+  }
+
+  .game-inner {
+    width: 100%;
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 10px 10px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  /* TOP BAR */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 10px;
+    background: rgba(0,0,0,0.78);
+    border: 2px solid rgba(255,255,255,0.14);
+    border-radius: 12px;
+    backdrop-filter: blur(6px);
+  }
+  .topbar .score-block { font-size: 10px; color: #ffd700; }
+  .topbar .score-block span { display: block; font-size: 13px; color: #fff; margin-top: 2px; }
+  .topbar .stage-block {
+    background: linear-gradient(180deg, rgba(255,255,255,0.14), rgba(255,255,255,0.04));
+    border: 2px solid rgba(255,255,255,0.14);
+    border-radius: 10px;
+    padding: 6px 12px;
+    text-align: center;
+    font-size: 9px;
+    color: #aac8ff;
+  }
+  .topbar .stage-block span { display: block; font-size: 15px; color: #fff; margin-top: 2px; }
+  .btn-stat {
+    background: linear-gradient(180deg, #7f3fbf, #5a2a8a);
+    border: 2px solid #9b59b6;
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    color: #fff;
+    cursor: pointer;
+    box-shadow: 0 3px 0 #3a1a5a;
+  }
+  .btn-stat:active { transform: translateY(2px); }
+
+  /* ENEMY CARD */
+  .fighter-card {
+    background: rgba(0,0,0,0.78);
+    border-radius: 16px;
+    padding: 12px;
+    border: 2px solid rgba(255,255,255,0.12);
+    backdrop-filter: blur(6px);
+    position: relative;
+  }
+  .fighter-card.enemy-card { border-color: rgba(255,80,80,0.3); }
+  .fighter-card.player-card { border-color: rgba(255,215,0,0.25); }
+  .fighter-card.boss-card { border-color: rgba(184,91,255,0.5); box-shadow: 0 0 24px rgba(184,91,255,0.2); }
+
+  .fighter-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 8px;
+    gap: 8px;
+  }
+  .fighter-name { font-size: 11px; color: #ffd700; }
+  .fighter-name.enemy-name { color: #ff8080; }
+  .fighter-tag {
+    font-size: 9px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.15);
+    white-space: nowrap;
+  }
+  .tag-boss { background: rgba(184,91,255,0.2); border-color: rgba(184,91,255,0.4); color: #d891ff; }
+  .tag-normal { color: #aac8ff; }
+  .tag-player { color: #ffd700; }
+
+  .hp-bar-wrap { margin-bottom: 4px; }
+  .hp-label {
+    display: flex; justify-content: space-between;
+    font-size: 9px; color: rgba(255,255,255,0.6); margin-bottom: 4px;
+  }
+  .hp-bar {
+    height: 14px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 999px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+  .hp-fill {
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #1aaa40, #3df572);
+    transition: width 0.35s ease;
+    box-shadow: 0 0 10px rgba(57,220,100,0.4);
+  }
+  .hp-fill.low {
+    background: linear-gradient(90deg, #cc1122, #ff4455);
+    box-shadow: 0 0 10px rgba(255,50,80,0.4);
+  }
+  .hp-fill.medium {
+    background: linear-gradient(90deg, #cc8800, #ffbb00);
+    box-shadow: 0 0 10px rgba(255,180,0,0.4);
+  }
+
+  /* BATTLE VIEW */
+  .battle-view {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    min-height: 110px;
+    position: relative;
+    margin-top: 6px;
+  }
+  .sprite-box {
+    width: min(38vw, 130px);
+    aspect-ratio: 1;
+    display: grid;
+    place-items: center;
+    filter: drop-shadow(0 8px 10px rgba(0,0,0,0.5));
+    position: relative;
+    z-index: 1;
+  }
+  .sprite-box svg { width: 100%; height: 100%; overflow: visible; }
+  .enemy-card .sprite-box { animation: bob 2.2s ease-in-out infinite; }
+  .player-card .sprite-box { animation: bob 2.6s ease-in-out infinite reverse; }
+
+  @keyframes bob {
+    0%,100%{transform:translateY(0);}
+    50%{transform:translateY(-6px);}
+  }
+
+  .hand-badge {
+    position: absolute;
+    right: 8px;
+    bottom: 6px;
+    background: rgba(0,0,0,0.75);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 10px;
+    padding: 5px 8px;
+    font-size: 9px;
+    text-align: center;
+    min-width: 58px;
+  }
+  .hand-badge .hem { display: block; font-size: 18px; margin-bottom: 2px; }
+
+  .dmg-pop {
+    position: absolute;
+    left: 50%; top: 30%;
+    transform: translate(-50%,-50%);
+    font-size: 16px;
+    color: #fff;
+    background: rgba(255,40,60,0.9);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 999px;
+    padding: 6px 12px;
+    pointer-events: none;
+    opacity: 0;
+    z-index: 20;
+  }
+  .dmg-pop.heal { background: rgba(20,200,80,0.9); }
+  .dmg-pop.show { animation: popUp 0.7s ease both; }
+
+  @keyframes popUp {
+    0%{opacity:0;transform:translate(-50%,-20%) scale(0.7);}
+    20%{opacity:1;transform:translate(-50%,-50%) scale(1.05);}
+    100%{opacity:0;transform:translate(-50%,-110%) scale(1);}
+  }
+
+  /* CENTER PANEL */
+  .center-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .vs-line {
+    text-align: center;
+    font-size: 16px;
+    color: #ffd700;
+    text-shadow: 2px 2px 0 rgba(0,0,0,0.5);
+    position: relative;
+  }
+  .vs-line::before,.vs-line::after {
+    content:"";
+    position:absolute;
+    top:50%;
+    width: 30%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(255,215,0,0.6), transparent);
+  }
+  .vs-line::before{left:4%;}
+  .vs-line::after{right:4%;}
+
+  .log-box {
+    background: rgba(0,0,0,0.82);
+    border: 2px solid rgba(255,255,255,0.1);
+    border-radius: 14px;
+    padding: 10px 14px;
+    min-height: 70px;
+    font-size: 11px;
+    line-height: 1.8;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    white-space: pre-line;
+    backdrop-filter: blur(4px);
+  }
+
+  /* ITEM BAR */
+  .item-bar {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    padding: 8px 10px;
+    background: rgba(0,0,0,0.7);
+    border-radius: 12px;
+    border: 2px solid rgba(255,215,0,0.15);
+  }
+  .item-label { font-size: 8px; color: #aac8ff; margin-right: 4px; }
+  .item-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    background: rgba(255,215,0,0.12);
+    border: 2px solid rgba(255,215,0,0.3);
+    border-radius: 10px;
+    padding: 6px 8px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    color: #ffd700;
+    cursor: pointer;
+    transition: transform 0.08s, background 0.1s;
+    min-width: 58px;
+    text-align: center;
+    position: relative;
+  }
+  .item-btn .item-icon { font-size: 18px; display: block; }
+  .item-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    filter: grayscale(0.8);
+  }
+  .item-btn:not(:disabled):active { transform: scale(0.93); }
+  .item-btn .used-mark {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    border-radius: inherit;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    color: #ff6666;
+  }
+
+  /* CONTROLS */
+  .controls {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .choice-btn {
+    min-height: 80px;
+    border-radius: 16px;
+    border: none;
+    cursor: pointer;
+    font-family: 'Press Start 2P', monospace;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    box-shadow: 0 5px 0 rgba(0,0,0,0.4), 0 10px 24px rgba(0,0,0,0.3);
+    transition: transform 0.08s, box-shadow 0.08s;
+    position: relative;
+    overflow: hidden;
+  }
+  .choice-btn::before {
+    content:"";
+    position:absolute;
+    top:0;left:0;right:0;
+    height:40%;
+    background: rgba(255,255,255,0.18);
+    border-radius: inherit;
+    pointer-events: none;
+  }
+  .choice-btn[data-hand="rock"] { background: linear-gradient(180deg, #ff7c2a, #cc4800); color: #fff3e0; }
+  .choice-btn[data-hand="paper"] { background: linear-gradient(180deg, #2ecc71, #1a8a4a); color: #e0fff0; }
+  .choice-btn[data-hand="scissors"] { background: linear-gradient(180deg, #3498db, #1a6ba0); color: #e0f4ff; }
+  .choice-btn:active { transform: translateY(4px); box-shadow: 0 1px 0 rgba(0,0,0,0.4); }
+  .choice-btn:disabled { filter: grayscale(0.6) brightness(0.55); cursor: not-allowed; }
+  .choice-btn .btn-icon { font-size: 26px; }
+  .choice-btn .btn-text { font-size: 12px; }
+  .choice-btn .btn-hint { font-size: 8px; opacity: 0.75; }
+
+  /* ===================== MODAL OVERLAYS ===================== */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    background: rgba(0,0,0,0.7);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal-overlay.active { display: flex; }
+
+  .modal-box {
+    background: linear-gradient(180deg, #1a2a50, #0d1a38);
+    border: 3px solid rgba(255,255,255,0.2);
+    border-radius: 20px;
+    padding: 20px;
+    width: 100%;
+    max-width: 380px;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+  .modal-title {
+    font-size: 13px;
+    color: #ffd700;
+    text-shadow: 2px 2px 0 #6b4400;
+    margin-bottom: 16px;
+    text-align: center;
+  }
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    font-size: 9px;
+  }
+  .stat-row:last-child { border-bottom: none; }
+  .stat-row .sl { color: rgba(255,255,255,0.6); }
+  .stat-row .sv { color: #ffd700; }
+  .stat-char-preview svg { width: 80px; height: 80px; display: block; margin: 0 auto 12px; }
+  .modal-close-btn {
+    width: 100%;
+    margin-top: 14px;
+    background: linear-gradient(180deg, #ffd700, #cc8800);
+    border: 2px solid #8b5500;
+    border-radius: 10px;
+    padding: 12px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 10px;
+    color: #1a0000;
+    cursor: pointer;
+    box-shadow: 0 4px 0 #5a3300;
+  }
+
+  /* STAGE CLEAR / GAMEOVER OVERLAY */
+  .result-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    background: rgba(0,0,0,0.78);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    padding: 20px;
+    gap: 14px;
+    text-align: center;
+  }
+  .result-overlay.active { display: flex; }
+  .result-title {
+    font-size: clamp(20px, 6vw, 30px);
+    text-shadow: 3px 3px 0 rgba(0,0,0,0.6);
+    animation: scaleIn 0.5s cubic-bezier(0.16,1,0.3,1) both;
+  }
+  .result-title.win { color: #ffd700; }
+  .result-title.lose { color: #ff4444; }
+  .result-sub { font-size: 10px; color: rgba(255,255,255,0.8); line-height: 2; }
+  .result-heal { font-size: 10px; color: #3df572; }
+  .btn-next, .btn-restart {
+    background: linear-gradient(180deg, #ffd700, #ff8c00);
+    color: #1a0000;
+    border: 3px solid #8b4500;
+    border-radius: 10px;
+    padding: 12px 28px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    box-shadow: 0 5px 0 #5a2d00;
+  }
+  .btn-restart { background: linear-gradient(180deg, #e84444, #aa2222); color: #fff; border-color: #6b0000; box-shadow: 0 5px 0 #3a0000; }
+
+  @keyframes scaleIn {
+    from{transform:scale(0.5) rotate(-5deg);opacity:0;}
+    to{transform:scale(1) rotate(0deg);opacity:1;}
+  }
+
+  /* FLASH */
+  .flash {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background: rgba(255,255,255,0.6);
+    opacity: 0;
+    z-index: 55;
+  }
+  .flash.on { animation: flashAnim 0.22s ease-out; }
+  @keyframes flashAnim {
+    0%{opacity:0;} 25%{opacity:1;} 100%{opacity:0;}
+  }
+
+  /* NOTICE TOAST */
+  .notice-toast {
+    position: fixed;
+    left: 50%;
+    top: 38%;
+    transform: translate(-50%,-50%) scale(0.8);
+    padding: 16px 24px;
+    border-radius: 18px;
+    font-size: clamp(18px, 5vw, 26px);
+    font-weight: bold;
+    text-align: center;
+    background: linear-gradient(135deg, rgba(200,60,60,0.97), rgba(160,70,240,0.97));
+    border: 2px solid rgba(255,255,255,0.3);
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+    pointer-events: none;
+    opacity: 0;
+    z-index: 56;
+  }
+  .notice-toast.show { animation: noticeAnim 1.2s ease both; }
+  @keyframes noticeAnim {
+    0%{opacity:0;transform:translate(-50%,-50%) scale(0.5)rotate(-4deg);}
+    20%{opacity:1;transform:translate(-50%,-50%) scale(1.08)rotate(1deg);}
+    70%{opacity:1;transform:translate(-50%,-50%) scale(1);}
+    100%{opacity:0;transform:translate(-50%,-50%) scale(1.1);}
+  }
+
+  /* ATTACK / HIT ANIMATIONS */
+  .sprite-box.attack { animation: attackAnim 0.28s ease !important; }
+  .sprite-box.hit { animation: hitAnim 0.28s ease !important; }
+  .fighter-card.shaking { animation: cardShake 0.28s ease !important; }
+  @keyframes attackAnim {
+    0%,100%{transform:translateY(0)scale(1);}
+    40%{transform:translateY(-10px)scale(1.08);}
+  }
+  @keyframes hitAnim {
+    0%,100%{transform:translateX(0)scale(1);}
+    20%{transform:translateX(-10px)scale(1.04);filter:brightness(1.5);}
+    50%{transform:translateX(9px)scale(0.96);}
+  }
+  @keyframes cardShake {
+    0%,100%{transform:translate(0);}
+    20%{transform:translate(-5px,3px);}
+    40%{transform:translate(5px,-2px);}
+    60%{transform:translate(-3px,-3px);}
+    80%{transform:translate(3px,3px);}
+  }
+
+  /* STAGE PROGRESS BAR */
+  .stage-progress {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    overflow-x: auto;
+    padding: 6px 10px;
+    background: rgba(0,0,0,0.6);
+    border-radius: 10px;
+    border: 2px solid rgba(255,255,255,0.08);
+  }
+  .stage-pip {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.2);
+    border: 2px solid rgba(255,255,255,0.2);
+    flex-shrink: 0;
+    transition: background 0.2s;
+  }
+  .stage-pip.done { background: #2ecc71; border-color: #1a8a4a; }
+  .stage-pip.current { background: #ffd700; border-color: #cc8800; box-shadow: 0 0 6px #ffd700; }
+  .stage-pip.boss { background: rgba(184,91,255,0.4); border-color: rgba(184,91,255,0.6); }
+  .stage-pip.boss.done { background: #b85bff; border-color: #7a2fa8; }
+  .stage-pip.boss.current { background: #b85bff; box-shadow: 0 0 8px #b85bff; }
+
+  .scroll-pad { height: 80px; }
+</style>
+</head>
+<body>
+
+<!-- WORLD BACKGROUND -->
+<div class="world-bg">
+  <div class="cloud c1"></div>
+  <div class="cloud c2"></div>
+  <div class="cloud c3"></div>
+  <div class="hill h1"></div>
+  <div class="hill h2"></div>
+</div>
+<div class="ground-strip"></div>
+
+<!-- ======== TITLE SCREEN ======== -->
+<div class="screen active" id="titleScreen">
+  <div class="title-logo">
+    <div class="sub">★ PIXEL ADVENTURE ★</div>
+    <div class="mario-castle-deco">
+      <svg viewBox="0 0 120 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- castle -->
+        <rect x="10" y="40" width="100" height="60" fill="#c84c0c"/>
+        <rect x="10" y="40" width="20" height="20" fill="#a83a00"/>
+        <rect x="50" y="40" width="20" height="20" fill="#a83a00"/>
+        <rect x="90" y="40" width="20" height="20" fill="#a83a00"/>
+        <rect x="44" y="60" width="32" height="40" fill="#8b3a00"/>
+        <!-- flag -->
+        <line x1="60" y1="0" x2="60" y2="40" stroke="#fff" stroke-width="3"/>
+        <polygon points="62,2 80,12 62,22" fill="#e52222"/>
+        <!-- stars -->
+        <text x="20" y="88" font-size="14" fill="#ffd700">★</text>
+        <text x="82" y="88" font-size="14" fill="#ffd700">★</text>
+      </svg>
+    </div>
+    <h1>ジャンケン<br/>RPG WORLD</h1>
+  </div>
+  <div class="press-start">PRESS START</div>
+  <button class="btn-start" onclick="showScreen('selectScreen')">▶ START GAME</button>
+</div>
+
+<!-- ======== CHARACTER SELECT SCREEN ======== -->
+<div class="screen" id="selectScreen">
+  <div class="select-title">★ SELECT YOUR CHARACTER ★</div>
+  <div class="char-grid" id="charGrid"></div>
+  <button class="btn-start" id="confirmCharBtn" disabled onclick="confirmChar()">▶ DECIDE!</button>
+</div>
+
+<!-- ======== GAME SCREEN ======== -->
+<div class="screen" id="gameScreen">
+  <div class="game-inner">
+
+    <!-- TOP BAR -->
+    <div class="topbar">
+      <div class="score-block">SCORE<span id="scoreVal">0</span></div>
+      <div class="stage-block">STAGE<span id="stageLabel">1</span></div>
+      <button class="btn-stat" onclick="openStatModal()">📊 STAT</button>
+    </div>
+
+    <!-- STAGE PROGRESS -->
+    <div class="stage-progress" id="stageProgress"></div>
+
+    <!-- ENEMY CARD -->
+    <div class="fighter-card enemy-card" id="enemyCard">
+      <div class="fighter-head">
+        <div>
+          <div class="fighter-tag tag-normal" id="enemyTag">NORMAL</div>
+          <div class="fighter-name enemy-name" id="enemyName">??</div>
+        </div>
+      </div>
+      <div class="hp-bar-wrap">
+        <div class="hp-label"><span>HP</span><span id="enemyHpTxt">0 / 0</span></div>
+        <div class="hp-bar"><div class="hp-fill" id="enemyHpFill" style="width:100%"></div></div>
+      </div>
+      <div class="battle-view">
+        <div class="sprite-box" id="enemySpriteBox"></div>
+        <div class="hand-badge" id="enemyBadge"><span class="hem">？</span>まっている</div>
+        <div class="dmg-pop" id="enemyDmgPop">-20</div>
+      </div>
+    </div>
+
+    <!-- CENTER -->
+    <div class="center-panel">
+      <div class="vs-line">VS</div>
+      <div class="log-box" id="logBox">コマンドを選んでください。</div>
+    </div>
+
+    <!-- PLAYER CARD -->
+    <div class="fighter-card player-card" id="playerCard">
+      <div class="fighter-head">
+        <div>
+          <div class="fighter-tag tag-player">PLAYER</div>
+          <div class="fighter-name" id="playerNameDisplay">??</div>
+        </div>
+      </div>
+      <div class="hp-bar-wrap">
+        <div class="hp-label"><span>HP</span><span id="playerHpTxt">0 / 0</span></div>
+        <div class="hp-bar"><div class="hp-fill" id="playerHpFill" style="width:100%"></div></div>
+      </div>
+      <div class="battle-view">
+        <div class="sprite-box" id="playerSpriteBox"></div>
+        <div class="hand-badge" id="playerBadge"><span class="hem">？</span>じゅんび</div>
+        <div class="dmg-pop" id="playerDmgPop">-15</div>
+      </div>
+    </div>
+
+    <!-- ITEM BAR -->
+    <div class="item-bar">
+      <span class="item-label">ITEMS:</span>
+      <button class="item-btn" id="itemMushroom" onclick="useItem('mushroom')">
+        <span class="item-icon">🍄</span>
+        <span>キノコ</span>
+        <span style="font-size:7px;color:#aaa">HP+30</span>
+      </button>
+      <button class="item-btn" id="itemStar" onclick="useItem('star')">
+        <span class="item-icon">⭐</span>
+        <span>スター</span>
+        <span style="font-size:7px;color:#aaa">必勝</span>
+      </button>
+      <button class="item-btn" id="itemFlower" onclick="useItem('flower')">
+        <span class="item-icon">🌸</span>
+        <span>フラワー</span>
+        <span style="font-size:7px;color:#aaa">HP+50</span>
+      </button>
+      <button class="item-btn" id="itemShell" onclick="useItem('shell')">
+        <span class="item-icon">🐢</span>
+        <span>コウラ</span>
+        <span style="font-size:7px;color:#aaa">守備UP</span>
+      </button>
+    </div>
+
+    <!-- BATTLE CONTROLS -->
+    <div class="controls">
+      <button class="choice-btn" data-hand="rock" onclick="playRound('rock')">
+        <span class="btn-icon">👊</span>
+        <span class="btn-text">グー</span>
+        <span class="btn-hint">ATTACK</span>
+      </button>
+      <button class="choice-btn" data-hand="paper" onclick="playRound('paper')">
+        <span class="btn-icon">✋</span>
+        <span class="btn-text">パー</span>
+        <span class="btn-hint">GUARD</span>
+      </button>
+      <button class="choice-btn" data-hand="scissors" onclick="playRound('scissors')">
+        <span class="btn-icon">✌️</span>
+        <span class="btn-text">チョキ</span>
+        <span class="btn-hint">SPEED</span>
+      </button>
+    </div>
+    <div class="scroll-pad"></div>
+  </div>
+</div>
+
+<!-- ======== STAT MODAL ======== -->
+<div class="modal-overlay" id="statModal">
+  <div class="modal-box">
+    <div class="modal-title">📊 STATUS</div>
+    <div class="stat-char-preview" id="statCharPreview"></div>
+    <div id="statContent"></div>
+    <button class="modal-close-btn" onclick="closeStatModal()">▶ CLOSE</button>
+  </div>
+</div>
+
+<!-- ======== RESULT OVERLAY ======== -->
+<div class="result-overlay" id="resultOverlay">
+  <div class="result-title" id="resultTitle"></div>
+  <div class="result-sub" id="resultSub"></div>
+  <div class="result-heal" id="resultHeal"></div>
+  <button class="btn-next" id="btnNext" onclick="nextStage()">▶ NEXT STAGE</button>
+  <button class="btn-restart" id="btnRestart" onclick="goTitle()" style="display:none">▶ TITLE</button>
+</div>
+
+<!-- FLASH & NOTICE -->
+<div class="flash" id="flash"></div>
+<div class="notice-toast" id="notice"></div>
+
+<script>
+"use strict";
+
+// ================================================================
+// DATA
+// ================================================================
+const HANDS = {
+  rock:     { jp:"グー",     emoji:"👊", beats:"scissors" },
+  paper:    { jp:"パー",     emoji:"✋", beats:"rock"     },
+  scissors: { jp:"チョキ",   emoji:"✌️", beats:"paper"   }
+};
+
+const CHARS = [
+  {
+    id: "mario",
+    name: "マリオ",
+    desc: "バランス型の万能ヒーロー",
+    maxHp: 120,
+    atk: 22,
+    def: 0,
+    luck: 10,
+    spriteKey: "mario",
+    stats: "ATK:22 / DEF:0 / LCK:10"
+  },
+  {
+    id: "luigi",
+    name: "ルイージ",
+    desc: "守備が高く粘り強い",
+    maxHp: 100,
+    atk: 18,
+    def: 5,
+    luck: 8,
+    spriteKey: "luigi",
+    stats: "ATK:18 / DEF:5 / LCK:8"
+  },
+  {
+    id: "peach",
+    name: "ピーチ姫",
+    desc: "運が高く回復が得意",
+    maxHp: 90,
+    atk: 16,
+    def: 2,
+    luck: 20,
+    spriteKey: "peach",
+    stats: "ATK:16 / DEF:2 / LCK:20"
+  },
+  {
+    id: "toad",
+    name: "キノピオ",
+    desc: "攻撃力最高の突撃型",
+    maxHp: 80,
+    atk: 28,
+    def: 0,
+    luck: 5,
+    spriteKey: "toad",
+    stats: "ATK:28 / DEF:0 / LCK:5"
+  }
+];
+
+// Enemy list: each stage uses one of these
+const ENEMY_LIST = [
+  { id:"goomba",    name:"クリボー",     tag:"NORMAL", sprite:"goomba",  maxHp:70,  atk:12, reward:100 },
+  { id:"koopa",     name:"ノコノコ",     tag:"NORMAL", sprite:"koopa",   maxHp:85,  atk:15, reward:130 },
+  { id:"piranha",   name:"パックンフラワー", tag:"NORMAL", sprite:"piranha", maxHp:90,  atk:18, reward:150 },
+  { id:"boo",       name:"テレサ",       tag:"NORMAL", sprite:"boo",     maxHp:80,  atk:20, reward:160 },
+  { id:"hammer",    name:"ハンマーブロス",tag:"STRONG", sprite:"hammer",  maxHp:110, atk:22, reward:200 },
+  { id:"lakitu",    name:"ジュゲム",     tag:"STRONG", sprite:"lakitu",  maxHp:100, atk:24, reward:220 },
+  { id:"chain",     name:"ワンワン",     tag:"STRONG", sprite:"chain",   maxHp:130, atk:26, reward:260 },
+  { id:"magikoopa", name:"カメック",     tag:"ELITE",  sprite:"magikoopa",maxHp:150, atk:28, reward:300 },
+  { id:"bowserjr",  name:"クッパJr.",    tag:"ELITE",  sprite:"bowserjr", maxHp:170, atk:30, reward:350 },
+  { id:"bowser",    name:"大魔王クッパ", tag:"BOSS",   sprite:"bowser",  maxHp:280, atk:36, reward:999 }
+];
+
+// Stage sequence: indices into ENEMY_LIST (last is boss)
+const STAGE_SEQUENCE = [0,1,2,3,4,5,6,7,8,9]; // 9 normal/elite + boss
+
+// SVG sprites
+const SPRITES = {};
+
+// Mario
+SPRITES.mario = `<svg viewBox="0 0 120 120">
+  <!-- hat -->
+  <rect x="38" y="10" width="44" height="10" rx="3" fill="#e52222"/>
+  <rect x="30" y="18" width="56" height="14" rx="4" fill="#e52222"/>
+  <!-- face -->
+  <rect x="34" y="30" width="52" height="36" rx="16" fill="#f4c27a"/>
+  <!-- eyes -->
+  <rect x="42" y="40" width="12" height="12" rx="5" fill="#1a1a1a"/>
+  <rect x="66" y="40" width="12" height="12" rx="5" fill="#1a1a1a"/>
+  <!-- mustache -->
+  <rect x="46" y="54" width="28" height="7" rx="4" fill="#7a3a12"/>
+  <!-- body -->
+  <rect x="30" y="64" width="60" height="28" rx="8" fill="#2b7fff"/>
+  <!-- overalls buckles -->
+  <rect x="42" y="66" width="12" height="24" rx="4" fill="#e52222"/>
+  <rect x="66" y="66" width="12" height="24" rx="4" fill="#e52222"/>
+  <!-- arms -->
+  <rect x="14" y="64" width="18" height="20" rx="9" fill="#f4c27a"/>
+  <rect x="88" y="64" width="18" height="20" rx="9" fill="#f4c27a"/>
+  <!-- gloves -->
+  <rect x="10" y="78" width="22" height="12" rx="6" fill="#fff"/>
+  <rect x="88" y="78" width="22" height="12" rx="6" fill="#fff"/>
+  <!-- legs -->
+  <rect x="36" y="90" width="18" height="22" rx="6" fill="#e52222"/>
+  <rect x="66" y="90" width="18" height="22" rx="6" fill="#e52222"/>
+  <!-- shoes -->
+  <rect x="30" y="106" width="26" height="12" rx="5" fill="#7a4500"/>
+  <rect x="64" y="106" width="26" height="12" rx="5" fill="#7a4500"/>
+</svg>`;
+
+SPRITES.luigi = `<svg viewBox="0 0 120 120">
+  <rect x="38" y="8" width="44" height="10" rx="3" fill="#2ecc71"/>
+  <rect x="30" y="16" width="56" height="14" rx="4" fill="#2ecc71"/>
+  <rect x="34" y="28" width="52" height="38" rx="16" fill="#f4c27a"/>
+  <rect x="42" y="38" width="12" height="13" rx="5" fill="#1a1a1a"/>
+  <rect x="66" y="38" width="12" height="13" rx="5" fill="#1a1a1a"/>
+  <rect x="44" y="52" width="32" height="8" rx="4" fill="#7a3a12"/>
+  <rect x="30" y="64" width="60" height="28" rx="8" fill="#2ecc71"/>
+  <rect x="42" y="66" width="12" height="24" rx="4" fill="#1a1a1a"/>
+  <rect x="66" y="66" width="12" height="24" rx="4" fill="#1a1a1a"/>
+  <rect x="14" y="64" width="18" height="20" rx="9" fill="#f4c27a"/>
+  <rect x="88" y="64" width="18" height="20" rx="9" fill="#f4c27a"/>
+  <rect x="10" y="78" width="22" height="12" rx="6" fill="#fff"/>
+  <rect x="88" y="78" width="22" height="12" rx="6" fill="#fff"/>
+  <rect x="36" y="90" width="18" height="22" rx="6" fill="#2ecc71"/>
+  <rect x="66" y="90" width="18" height="22" rx="6" fill="#2ecc71"/>
+  <rect x="30" y="106" width="26" height="12" rx="5" fill="#7a4500"/>
+  <rect x="64" y="106" width="26" height="12" rx="5" fill="#7a4500"/>
+</svg>`;
+
+SPRITES.peach = `<svg viewBox="0 0 120 120">
+  <!-- crown -->
+  <rect x="36" y="2" width="48" height="8" rx="2" fill="#ffd700"/>
+  <rect x="42" y="2" width="6" height="12" rx="2" fill="#ffd700"/>
+  <rect x="57" y="2" width="6" height="14" rx="2" fill="#ffd700"/>
+  <rect x="72" y="2" width="6" height="12" rx="2" fill="#ffd700"/>
+  <!-- hair -->
+  <rect x="24" y="14" width="72" height="20" rx="10" fill="#f4c22a"/>
+  <!-- face -->
+  <rect x="34" y="24" width="52" height="34" rx="16" fill="#f9d4a8"/>
+  <!-- eyes -->
+  <rect x="42" y="34" width="10" height="11" rx="5" fill="#1a1a1a"/>
+  <rect x="68" y="34" width="10" height="11" rx="5" fill="#1a1a1a"/>
+  <!-- lips -->
+  <rect x="50" y="48" width="20" height="6" rx="3" fill="#e06080"/>
+  <!-- dress -->
+  <rect x="24" y="56" width="72" height="40" rx="12" fill="#ff88b8"/>
+  <!-- collar -->
+  <rect x="44" y="54" width="32" height="12" rx="6" fill="#fff"/>
+  <!-- arms -->
+  <rect x="12" y="62" width="16" height="18" rx="8" fill="#f9d4a8"/>
+  <rect x="92" y="62" width="16" height="18" rx="8" fill="#f9d4a8"/>
+  <!-- shoes -->
+  <rect x="34" y="108" width="22" height="10" rx="5" fill="#e52222"/>
+  <rect x="64" y="108" width="22" height="10" rx="5" fill="#e52222"/>
+</svg>`;
+
+SPRITES.toad = `<svg viewBox="0 0 120 120">
+  <!-- mushroom cap -->
+  <ellipse cx="60" cy="30" rx="44" ry="28" fill="#ff4444"/>
+  <circle cx="42" cy="24" r="9" fill="#fff4d9"/>
+  <circle cx="78" cy="20" r="8" fill="#fff4d9"/>
+  <circle cx="60" cy="14" r="10" fill="#fff4d9"/>
+  <!-- face -->
+  <rect x="36" y="42" width="48" height="32" rx="16" fill="#ffecd6"/>
+  <!-- eyes -->
+  <rect x="44" y="50" width="12" height="12" rx="5" fill="#1a1a1a"/>
+  <rect x="64" y="50" width="12" height="12" rx="5" fill="#1a1a1a"/>
+  <!-- vest -->
+  <rect x="32" y="72" width="56" height="26" rx="8" fill="#fff"/>
+  <rect x="38" y="72" width="44" height="10" rx="4" fill="#2b7fff"/>
+  <!-- legs -->
+  <rect x="36" y="94" width="18" height="20" rx="6" fill="#ffecd6"/>
+  <rect x="66" y="94" width="18" height="20" rx="6" fill="#ffecd6"/>
+  <!-- shoes -->
+  <rect x="30" y="108" width="26" height="10" rx="4" fill="#8b4500"/>
+  <rect x="64" y="108" width="26" height="10" rx="4" fill="#8b4500"/>
+</svg>`;
+
+// ENEMIES
+SPRITES.goomba = `<svg viewBox="0 0 120 120">
+  <ellipse cx="60" cy="108" rx="28" ry="7" fill="rgba(0,0,0,0.2)"/>
+  <ellipse cx="60" cy="66" rx="42" ry="44" fill="#c87428"/>
+  <ellipse cx="60" cy="56" rx="36" ry="28" fill="#e8904a"/>
+  <ellipse cx="42" cy="50" rx="10" ry="12" fill="#1a0800"/>
+  <ellipse cx="78" cy="50" rx="10" ry="12" fill="#1a0800"/>
+  <ellipse cx="42" cy="49" rx="4" ry="5" fill="#fff" opacity="0.7"/>
+  <ellipse cx="78" cy="49" rx="4" ry="5" fill="#fff" opacity="0.7"/>
+  <path d="M44 70 Q60 82 76 70" stroke="#7a3200" stroke-width="4" stroke-linecap="round" fill="none"/>
+  <rect x="20" y="90" width="26" height="18" rx="6" fill="#c87428"/>
+  <rect x="74" y="90" width="26" height="18" rx="6" fill="#c87428"/>
+</svg>`;
+
+SPRITES.koopa = `<svg viewBox="0 0 120 120">
+  <ellipse cx="60" cy="110" rx="26" ry="7" fill="rgba(0,0,0,0.2)"/>
+  <!-- shell -->
+  <ellipse cx="60" cy="72" rx="38" ry="42" fill="#2ecc71"/>
+  <ellipse cx="60" cy="70" rx="30" ry="34" fill="#27ae60"/>
+  <!-- shell pattern -->
+  <line x1="60" y1="36" x2="60" y2="104" stroke="#1a8a4a" stroke-width="2.5"/>
+  <line x1="22" y1="70" x2="98" y2="70" stroke="#1a8a4a" stroke-width="2.5"/>
+  <!-- head -->
+  <ellipse cx="60" cy="36" rx="22" ry="22" fill="#f4c27a"/>
+  <ellipse cx="50" cy="30" rx="6" ry="7" fill="#1a1a1a"/>
+  <ellipse cx="70" cy="30" rx="6" ry="7" fill="#1a1a1a"/>
+  <!-- neck -->
+  <rect x="50" y="44" width="20" height="12" rx="6" fill="#f4c27a"/>
+  <!-- legs -->
+  <rect x="28" y="100" width="22" height="16" rx="6" fill="#f4c27a"/>
+  <rect x="70" y="100" width="22" height="16" rx="6" fill="#f4c27a"/>
+</svg>`;
+
+SPRITES.piranha = `<svg viewBox="0 0 120 120">
+  <!-- pipe -->
+  <rect x="38" y="70" width="44" height="50" rx="4" fill="#2ecc71"/>
+  <rect x="34" y="64" width="52" height="14" rx="4" fill="#27ae60"/>
+  <!-- stem -->
+  <rect x="55" y="30" width="10" height="40" fill="#2ecc71"/>
+  <!-- head -->
+  <ellipse cx="60" cy="28" rx="30" ry="26" fill="#e52222"/>
+  <ellipse cx="60" cy="24" rx="22" ry="16" fill="#ff6666"/>
+  <!-- spots -->
+  <circle cx="48" cy="20" r="5" fill="#fff"/>
+  <circle cx="72" cy="22" r="4" fill="#fff"/>
+  <!-- eyes -->
+  <circle cx="44" cy="26" r="6" fill="#fff"/>
+  <circle cx="76" cy="26" r="6" fill="#fff"/>
+  <circle cx="45" cy="26" r="3" fill="#1a1a1a"/>
+  <circle cx="77" cy="26" r="3" fill="#1a1a1a"/>
+  <!-- teeth -->
+  <path d="M40 36 L46 28 L52 36 L58 28 L64 36 L70 28 L76 36 L82 28 L80 36 Z" fill="#fff"/>
+</svg>`;
+
+SPRITES.boo = `<svg viewBox="0 0 120 120">
+  <ellipse cx="60" cy="106" rx="30" ry="8" fill="rgba(0,0,0,0.15)"/>
+  <!-- body -->
+  <ellipse cx="60" cy="62" rx="46" ry="50" fill="rgba(255,255,255,0.95)"/>
+  <ellipse cx="60" cy="56" rx="40" ry="42" fill="#fff"/>
+  <!-- wavy bottom -->
+  <path d="M14 90 Q22 106 36 90 Q46 106 60 90 Q74 106 84 90 Q98 106 106 90" fill="#fff" stroke="none"/>
+  <!-- eyes -->
+  <ellipse cx="44" cy="54" rx="12" ry="14" fill="#1a1a1a"/>
+  <ellipse cx="76" cy="54" rx="12" ry="14" fill="#1a1a1a"/>
+  <ellipse cx="44" cy="52" rx="5" ry="6" fill="#fff"/>
+  <ellipse cx="76" cy="52" rx="5" ry="6" fill="#fff"/>
+  <!-- smile -->
+  <path d="M42 72 Q60 86 78 72" stroke="#e84444" stroke-width="4" stroke-linecap="round" fill="none"/>
+  <!-- cheeks -->
+  <ellipse cx="32" cy="64" rx="10" ry="8" fill="rgba(255,100,100,0.3)"/>
+  <ellipse cx="88" cy="64" rx="10" ry="8" fill="rgba(255,100,100,0.3)"/>
+</svg>`;
+
+SPRITES.hammer = `<svg viewBox="0 0 120 120">
+  <ellipse cx="60" cy="110" rx="26" ry="7" fill="rgba(0,0,0,0.2)"/>
+  <!-- shell on back -->
+  <ellipse cx="60" cy="68" rx="30" ry="36" fill="#e52222"/>
+  <!-- head -->
+  <ellipse cx="60" cy="38" rx="24" ry="22" fill="#f4c27a"/>
+  <ellipse cx="46" cy="32" rx="7" ry="8" fill="#1a1a1a"/>
+  <ellipse cx="74" cy="32" rx="7" ry="8" fill="#1a1a1a"/>
+  <ellipse cx="46" cy="31" rx="3" ry="4" fill="#fff" opacity="0.7"/>
+  <ellipse cx="74" cy="31" rx="3" ry="4" fill="#fff" opacity="0.7"/>
+  <!-- helmet -->
+  <path d="M36 34 Q60 8 84 34" fill="#e52222" stroke="none"/>
+  <!-- hammer -->
+  <rect x="82" y="24" width="28" height="18" rx="4" fill="#a8660a"/>
+  <rect x="94" y="18" width="6" height="40" rx="2" fill="#7a4500"/>
+  <!-- legs -->
+  <rect x="38" y="92" width="18" height="20" rx="6" fill="#f4c27a"/>
+  <rect x="64" y="92" width="18" height="20" rx="6" fill="#f4c27a"/>
+</svg>`;
+
+SPRITES.lakitu = `<svg viewBox="0 0 120 120">
+  <!-- cloud -->
+  <ellipse cx="60" cy="42" rx="40" ry="24" fill="#fff"/>
+  <ellipse cx="44" cy="36" rx="20" ry="18" fill="#fff"/>
+  <ellipse cx="76" cy="36" rx="20" ry="18" fill="#fff"/>
+  <!-- fishing rod -->
+  <line x1="66" y1="18" x2="100" y2="50" stroke="#8b5a00" stroke-width="3"/>
+  <circle cx="100" cy="54" r="8" fill="#e52222"/> <!-- spiny -->
+  <!-- body -->
+  <ellipse cx="60" cy="46" rx="16" ry="18" fill="#f4c27a"/>
+  <!-- glasses -->
+  <rect x="42" y="40" width="16" height="12" rx="4" fill="none" stroke="#7a4500" stroke-width="2.5"/>
+  <rect x="62" y="40" width="16" height="12" rx="4" fill="none" stroke="#7a4500" stroke-width="2.5"/>
+  <line x1="58" y1="46" x2="62" y2="46" stroke="#7a4500" stroke-width="2"/>
+  <circle cx="50" cy="46" r="3" fill="#1a1a1a"/>
+  <circle cx="70" cy="46" r="3" fill="#1a1a1a"/>
+  <!-- shell -->
+  <ellipse cx="60" cy="74" rx="26" ry="22" fill="#2ecc71"/>
+  <!-- arms -->
+  <rect x="16" y="54" width="16" height="12" rx="6" fill="#f4c27a"/>
+  <rect x="88" y="54" width="16" height="12" rx="6" fill="#f4c27a"/>
+</svg>`;
+
+SPRITES.chain = `<svg viewBox="0 0 120 120">
+  <!-- chain -->
+  <circle cx="60" cy="108" r="8" fill="#888"/>
+  <rect x="57" y="76" width="6" height="36" fill="#888"/>
+  <circle cx="60" cy="74" r="6" fill="#888"/>
+  <!-- body -->
+  <circle cx="60" cy="56" r="38" fill="#1a1a1a"/>
+  <circle cx="60" cy="52" r="32" fill="#2a2a2a"/>
+  <!-- eyes -->
+  <circle cx="44" cy="48" r="10" fill="#fff"/>
+  <circle cx="76" cy="48" r="10" fill="#fff"/>
+  <circle cx="46" cy="48" r="6" fill="#e52222"/>
+  <circle cx="78" cy="48" r="6" fill="#e52222"/>
+  <!-- teeth -->
+  <path d="M34 66 L40 56 L46 66 L52 56 L58 66 L64 56 L70 66 L76 56 L82 66 L86 56 L88 66" fill="none" stroke="#fff" stroke-width="3" stroke-linejoin="round"/>
+</svg>`;
+
+SPRITES.magikoopa = `<svg viewBox="0 0 120 120">
+  <ellipse cx="60" cy="110" rx="26" ry="7" fill="rgba(0,0,0,0.2)"/>
+  <!-- robe -->
+  <ellipse cx="60" cy="80" rx="36" ry="38" fill="#4444cc"/>
+  <!-- head -->
+  <ellipse cx="60" cy="42" rx="22" ry="22" fill="#f4c27a"/>
+  <!-- hat -->
+  <polygon points="60,4 36,36 84,36" fill="#4444cc"/>
+  <rect x="30" y="34" width="60" height="8" rx="3" fill="#3333aa"/>
+  <!-- glasses -->
+  <rect x="40" y="40" width="14" height="10" rx="3" fill="none" stroke="#333" stroke-width="2.5"/>
+  <rect x="58" y="40" width="14" height="10" rx="3" fill="none" stroke="#333" stroke-width="2.5"/>
+  <line x1="54" y1="45" x2="58" y2="45" stroke="#333" stroke-width="2"/>
+  <circle cx="47" cy="45" r="3" fill="#1a1a1a"/>
+  <circle cx="65" cy="45" r="3" fill="#1a1a1a"/>
+  <!-- wand + magic -->
+  <rect x="84" y="34" width="5" height="36" rx="2" fill="#333"/>
+  <circle cx="86" cy="30" r="10" fill="#9b59b6" opacity="0.8"/>
+  <circle cx="86" cy="30" r="6" fill="#d891ff"/>
+  <!-- arms -->
+  <rect x="16" y="70" width="16" height="14" rx="7" fill="#f4c27a"/>
+  <rect x="88" y="60" width="16" height="14" rx="7" fill="#f4c27a"/>
+</svg>`;
+
+SPRITES.bowserjr = `<svg viewBox="0 0 120 120">
+  <ellipse cx="60" cy="112" rx="30" ry="8" fill="rgba(0,0,0,0.2)"/>
+  <!-- shell -->
+  <ellipse cx="60" cy="78" rx="40" ry="38" fill="#2a8000"/>
+  <ellipse cx="60" cy="76" rx="32" ry="30" fill="#3aaa10"/>
+  <!-- shell lines -->
+  <line x1="60" y1="46" x2="60" y2="106" stroke="#1a6000" stroke-width="2.5"/>
+  <line x1="20" y1="78" x2="100" y2="78" stroke="#1a6000" stroke-width="2.5"/>
+  <!-- body / neck -->
+  <rect x="42" y="52" width="36" height="20" rx="10" fill="#e8a84a"/>
+  <!-- head -->
+  <ellipse cx="60" cy="40" rx="30" ry="26" fill="#e8a84a"/>
+  <!-- hair -->
+  <path d="M44 20 Q60 4 76 20" stroke="#e52222" stroke-width="6" fill="none" stroke-linecap="round"/>
+  <!-- eyes -->
+  <ellipse cx="46" cy="36" rx="8" ry="9" fill="#fff"/>
+  <ellipse cx="74" cy="36" rx="8" ry="9" fill="#fff"/>
+  <circle cx="48" cy="36" r="4" fill="#1a1a1a"/>
+  <circle cx="76" cy="36" r="4" fill="#1a1a1a"/>
+  <!-- mouth -->
+  <path d="M44 52 Q60 64 76 52" stroke="#7a2800" stroke-width="3" fill="none"/>
+  <!-- arms -->
+  <rect x="14" y="70" width="18" height="22" rx="9" fill="#e8a84a"/>
+  <rect x="88" y="70" width="18" height="22" rx="9" fill="#e8a84a"/>
+  <!-- fists -->
+  <ellipse cx="22" cy="94" rx="12" ry="10" fill="#e8a84a"/>
+  <ellipse cx="98" cy="94" rx="12" ry="10" fill="#e8a84a"/>
+</svg>`;
+
+SPRITES.bowser = `<svg viewBox="0 0 120 120">
+  <ellipse cx="60" cy="114" rx="36" ry="8" fill="rgba(0,0,0,0.25)"/>
+  <!-- shell -->
+  <ellipse cx="60" cy="82" rx="46" ry="44" fill="#2a8000"/>
+  <ellipse cx="60" cy="80" rx="38" ry="36" fill="#3aaa10"/>
+  <line x1="60" y1="44" x2="60" y2="116" stroke="#1a6000" stroke-width="3"/>
+  <line x1="14" y1="80" x2="106" y2="80" stroke="#1a6000" stroke-width="3"/>
+  <ellipse cx="60" cy="80" rx="12" ry="12" fill="#ffd700"/>
+  <!-- spikes -->
+  <polygon points="34,50 40,34 46,50" fill="#e8a84a"/>
+  <polygon points="54,44 60,26 66,44" fill="#e8a84a"/>
+  <polygon points="74,50 80,34 86,50" fill="#e8a84a"/>
+  <!-- head -->
+  <ellipse cx="60" cy="42" rx="36" ry="32" fill="#e8a84a"/>
+  <!-- horns -->
+  <polygon points="34,24 28,4 44,20" fill="#e52222"/>
+  <polygon points="86,24 92,4 76,20" fill="#e52222"/>
+  <!-- eyes -->
+  <ellipse cx="44" cy="36" rx="10" ry="11" fill="#fff"/>
+  <ellipse cx="76" cy="36" rx="10" ry="11" fill="#fff"/>
+  <circle cx="46" cy="36" r="5" fill="#e52222"/>
+  <circle cx="78" cy="36" r="5" fill="#e52222"/>
+  <circle cx="47" cy="35" r="2" fill="#1a1a1a"/>
+  <circle cx="79" cy="35" r="2" fill="#1a1a1a"/>
+  <!-- eyebrows angry -->
+  <line x1="36" y1="26" x2="52" y2="30" stroke="#7a3200" stroke-width="4" stroke-linecap="round"/>
+  <line x1="84" y1="26" x2="68" y2="30" stroke="#7a3200" stroke-width="4" stroke-linecap="round"/>
+  <!-- nostrils -->
+  <ellipse cx="52" cy="48" rx="5" ry="4" fill="#c87428"/>
+  <ellipse cx="68" cy="48" rx="5" ry="4" fill="#c87428"/>
+  <!-- teeth -->
+  <path d="M42 56 L46 48 L52 56 L58 48 L64 56 L70 48 L76 56 L78 48 L80 56" fill="none" stroke="#fff" stroke-width="3" stroke-linejoin="round"/>
+  <!-- arms -->
+  <rect x="6" y="74" width="24" height="28" rx="12" fill="#e8a84a"/>
+  <rect x="90" y="74" width="24" height="28" rx="12" fill="#e8a84a"/>
+  <ellipse cx="18" cy="104" rx="14" ry="12" fill="#e8a84a"/>
+  <ellipse cx="102" cy="104" rx="14" ry="12" fill="#e8a84a"/>
+</svg>`;
+
+// ================================================================
+// GAME STATE
+// ================================================================
+const G = {
+  char: null,
+  stage: 0,
+  score: 0,
+  playerHp: 0,
+  playerMaxHp: 0,
+  enemyHp: 0,
+  enemy: null,
+  locked: false,
+  items: { mushroom: true, star: true, flower: true, shell: true },
+  starActive: false,
+  shellActive: false,
+  wins: 0,
+};
+
+// ================================================================
+// HELPERS
+// ================================================================
+const $ = id => document.getElementById(id);
+function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
+function hpPct(cur,max){ return clamp(cur/max*100,0,100); }
+
+function setHpBar(fillEl, txtEl, cur, max) {
+  const pct = hpPct(cur,max);
+  fillEl.style.width = pct + "%";
+  fillEl.classList.remove("low","medium");
+  if (pct <= 25) fillEl.classList.add("low");
+  else if (pct <= 55) fillEl.classList.add("medium");
+  if (txtEl) txtEl.textContent = `${cur} / ${max}`;
+}
+
+function showNotice(txt) {
+  const n = $("notice");
+  n.textContent = txt;
+  n.classList.remove("show");
+  void n.offsetWidth;
+  n.classList.add("show");
+}
+
+function triggerFlash() {
+  const f = $("flash");
+  f.classList.remove("on");
+  void f.offsetWidth;
+  f.classList.add("on");
+}
+
+function showDmg(popId, amount, isHeal=false) {
+  const el = $(popId);
+  el.textContent = isHeal ? `+${amount}` : `-${amount}`;
+  el.classList.toggle("heal", isHeal);
+  el.classList.remove("show");
+  void el.offsetWidth;
+  el.classList.add("show");
+}
+
+function setBadge(elId, handKey, fallback) {
+  const el = $(elId);
+  if (!handKey) { el.innerHTML = `<span class="hem">？</span>${fallback}`; return; }
+  el.innerHTML = `<span class="hem">${HANDS[handKey].emoji}</span>${HANDS[handKey].jp}`;
+}
+
+function triggerImpact(cardId, spriteId) {
+  const card = $(cardId);
+  const sprite = $(spriteId);
+  card.classList.remove("shaking"); sprite.classList.remove("hit","attack");
+  void card.offsetWidth;
+  card.classList.add("shaking"); sprite.classList.add("hit");
+  triggerFlash();
+}
+
+function triggerAttack(spriteId) {
+  const sprite = $(spriteId);
+  sprite.classList.remove("attack");
+  void sprite.offsetWidth;
+  sprite.classList.add("attack");
+}
+
+function disableControls(v) {
+  document.querySelectorAll(".choice-btn").forEach(b => b.disabled = v);
+  ["itemMushroom","itemStar","itemFlower","itemShell"].forEach(id => {
+    const b = $(id);
+    if (b) b.disabled = v || !G.items[id.replace("item","").toLowerCase()];
+  });
+}
+
+function showScreen(id) {
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  $(id).classList.add("active");
+}
+
+function randomHand() {
+  const keys = Object.keys(HANDS);
+  return keys[Math.floor(Math.random() * keys.length)];
+}
+
+function judge(p, e) {
+  if (p === e) return "draw";
+  return HANDS[p].beats === e ? "win" : "lose";
+}
+
+// ================================================================
+// CHARACTER SELECT
+// ================================================================
+function buildCharGrid() {
+  const grid = $("charGrid");
+  grid.innerHTML = "";
+  CHARS.forEach(c => {
+    const div = document.createElement("div");
+    div.className = "char-card";
+    div.dataset.id = c.id;
+    div.innerHTML = `
+      ${SPRITES[c.spriteKey]}
+      <div class="char-name">${c.name}</div>
+      <div class="char-stats">${c.stats}</div>
+      <div class="char-desc">${c.desc}</div>
+    `;
+    div.onclick = () => {
+      document.querySelectorAll(".char-card").forEach(x => x.classList.remove("selected"));
+      div.classList.add("selected");
+      G.char = c;
+      $("confirmCharBtn").disabled = false;
+    };
+    grid.appendChild(div);
+  });
+}
+
+function confirmChar() {
+  if (!G.char) return;
+  startGame();
+}
+
+// ================================================================
+// GAME START
+// ================================================================
+function startGame() {
+  const c = G.char;
+  G.stage = 0;
+  G.score = 0;
+  G.playerMaxHp = c.maxHp;
+  G.playerHp = c.maxHp;
+  G.items = { mushroom: true, star: true, flower: true, shell: true };
+  G.starActive = false;
+  G.shellActive = false;
+  G.wins = 0;
+
+  $("playerNameDisplay").textContent = c.name;
+  $("playerSpriteBox").innerHTML = SPRITES[c.spriteKey];
+
+  buildStageProgress();
+  loadStage(G.stage);
+  updateItemButtons();
+  showScreen("gameScreen");
+}
+
+function buildStageProgress() {
+  const bar = $("stageProgress");
+  bar.innerHTML = "";
+  STAGE_SEQUENCE.forEach((eIdx, i) => {
+    const pip = document.createElement("div");
+    pip.className = "stage-pip" + (ENEMY_LIST[eIdx].tag === "BOSS" ? " boss" : "");
+    pip.id = `pip${i}`;
+    bar.appendChild(pip);
+  });
+  updateStageProgress();
+}
+
+function updateStageProgress() {
+  STAGE_SEQUENCE.forEach((_, i) => {
+    const pip = $(`pip${i}`);
+    if (!pip) return;
+    pip.classList.remove("done","current");
+    if (i < G.stage) pip.classList.add("done");
+    else if (i === G.stage) pip.classList.add("current");
+  });
+}
+
+function loadStage(idx) {
+  const eData = ENEMY_LIST[STAGE_SEQUENCE[idx]];
+  G.enemy = { ...eData };
+  G.enemyHp = eData.maxHp;
+  G.locked = false;
+
+  $("stageLabel").textContent = idx + 1;
+  $("scoreVal").textContent = G.score;
+  $("enemyName").textContent = eData.name;
+  $("enemyTag").textContent = eData.tag;
+  $("enemyTag").className = "fighter-tag " +
+    (eData.tag === "BOSS" ? "tag-boss" : eData.tag === "ELITE" ? "tag-boss" : "tag-normal");
+
+  const eCard = $("enemyCard");
+  eCard.classList.toggle("boss-card", eData.tag === "BOSS");
+
+  $("enemySpriteBox").innerHTML = SPRITES[eData.sprite] || SPRITES.goomba;
+  setHpBar($("enemyHpFill"), $("enemyHpTxt"), G.enemyHp, G.enemy.maxHp);
+  setHpBar($("playerHpFill"), $("playerHpTxt"), G.playerHp, G.playerMaxHp);
+
+  setBadge("enemyBadge", null, "まっている");
+  setBadge("playerBadge", null, "じゅんび");
+
+  if (eData.tag === "BOSS") {
+    $("logBox").textContent = "⚠ BOSS出現！\n" + eData.name + "があらわれた！";
+    showNotice("⚠ BOSS出現！");
+  } else {
+    $("logBox").textContent = eData.name + "があらわれた！\nコマンドを選んでください。";
+  }
+
+  updateStageProgress();
+  disableControls(false);
+  updateItemButtons();
+}
+
+// ================================================================
+// ITEMS
+// ================================================================
+function updateItemButtons() {
+  const map = { mushroom:"itemMushroom", star:"itemStar", flower:"itemFlower", shell:"itemShell" };
+  for (const [key, id] of Object.entries(map)) {
+    const btn = $(id);
+    if (!btn) continue;
+    const used = !G.items[key];
+    btn.disabled = G.locked || used;
+    // show/hide used mark
+    let mark = btn.querySelector(".used-mark");
+    if (used) {
+      if (!mark) {
+        mark = document.createElement("div");
+        mark.className = "used-mark";
+        mark.textContent = "USED";
+        btn.appendChild(mark);
+      }
+    } else {
+      if (mark) mark.remove();
+    }
+  }
+}
+
+function useItem(key) {
+  if (!G.items[key] || G.locked) return;
+  G.items[key] = false;
+  updateItemButtons();
+
+  if (key === "mushroom") {
+    const heal = 30;
+    G.playerHp = clamp(G.playerHp + heal, 0, G.playerMaxHp);
+    setHpBar($("playerHpFill"), $("playerHpTxt"), G.playerHp, G.playerMaxHp);
+    showDmg("playerDmgPop", heal, true);
+    $("logBox").textContent = "🍄 キノコを使った！\nHP が " + heal + " 回復した！";
+  } else if (key === "star") {
+    G.starActive = true;
+    $("logBox").textContent = "⭐ スターを使った！\n次のラウンドは必ず勝つ！";
+    showNotice("⭐ STAR POWER!");
+  } else if (key === "flower") {
+    const heal = 50;
+    G.playerHp = clamp(G.playerHp + heal, 0, G.playerMaxHp);
+    setHpBar($("playerHpFill"), $("playerHpTxt"), G.playerHp, G.playerMaxHp);
+    showDmg("playerDmgPop", heal, true);
+    $("logBox").textContent = "🌸 フラワーを使った！\nHP が " + heal + " 回復した！";
+  } else if (key === "shell") {
+    G.shellActive = true;
+    $("logBox").textContent = "🐢 コウラを使った！\n次の攻撃を半減する！";
+    showNotice("🐢 SHELL GUARD!");
+  }
+}
+
+// ================================================================
+// BATTLE
+// ================================================================
+function playRound(playerHand) {
+  if (G.locked) return;
+  G.locked = true;
+  disableControls(true);
+
+  let enemyHand;
+  if (G.starActive) {
+    // force win: pick hand that beats whatever enemy shows
+    enemyHand = randomHand();
+    playerHand = Object.keys(HANDS).find(h => HANDS[h].beats === enemyHand) || playerHand;
+    G.starActive = false;
+  } else {
+    enemyHand = randomHand();
+  }
+
+  setBadge("playerBadge", playerHand, "");
+  setBadge("enemyBadge", enemyHand, "");
+
+  const result = judge(playerHand, enemyHand);
+  const e = G.enemy;
+  const c = G.char;
+
+  let logMsg = "";
+
+  if (result === "win") {
+    const dmg = c.atk + Math.floor(Math.random() * 8);
+    G.enemyHp = clamp(G.enemyHp - dmg, 0, e.maxHp);
+    setHpBar($("enemyHpFill"), $("enemyHpTxt"), G.enemyHp, e.maxHp);
+    triggerAttack("playerSpriteBox");
+    triggerImpact("enemyCard", "enemySpriteBox");
+    showDmg("enemyDmgPop", dmg, false);
+    logMsg = `${HANDS[playerHand].jp} vs ${HANDS[enemyHand].jp}\n✨ 勝ち！ 敵に ${dmg} ダメージ！`;
+
+  } else if (result === "lose") {
+    let dmg = e.atk + Math.floor(Math.random() * 8);
+    if (G.shellActive) { dmg = Math.floor(dmg / 2); G.shellActive = false; }
+    if (c.def > 0) dmg = Math.max(1, dmg - c.def);
+    G.playerHp = clamp(G.playerHp - dmg, 0, G.playerMaxHp);
+    setHpBar($("playerHpFill"), $("playerHpTxt"), G.playerHp, G.playerMaxHp);
+    triggerAttack("enemySpriteBox");
+    triggerImpact("playerCard", "playerSpriteBox");
+    showDmg("playerDmgPop", dmg, false);
+    logMsg = `${HANDS[playerHand].jp} vs ${HANDS[enemyHand].jp}\n💥 負け！ ${dmg} ダメージを受けた！`;
+
+  } else {
+    logMsg = `${HANDS[playerHand].jp} vs ${HANDS[enemyHand].jp}\n🤝 あいこ！ ダメージなし`;
+  }
+
+  $("logBox").textContent = logMsg;
+
+  setTimeout(() => {
+    if (G.playerHp <= 0) {
+      showResult(false); return;
+    }
+    if (G.enemyHp <= 0) {
+      G.score += e.reward;
+      if (c.luck > 0 && Math.random() * 100 < c.luck) {
+        const bonus = Math.floor(e.reward * 0.5);
+        G.score += bonus;
+        showNotice(`🍀 LUCKY! +${bonus}pt`);
+      }
+      $("scoreVal").textContent = G.score;
+      showResult(true); return;
+    }
+    G.locked = false;
+    disableControls(false);
+    updateItemButtons();
+  }, 700);
+}
+
+// ================================================================
+// RESULT
+// ================================================================
+function showResult(win) {
+  const overlay = $("resultOverlay");
+  const title = $("resultTitle");
+  const sub = $("resultSub");
+  const healTxt = $("resultHeal");
+  const btnNext = $("btnNext");
+  const btnRestart = $("btnRestart");
+
+  const isLastStage = G.stage >= STAGE_SEQUENCE.length - 1;
+
+  if (win) {
+    const isWin = true;
+    const heal = Math.floor(G.playerMaxHp * 0.2);
+    G.playerHp = clamp(G.playerHp + heal, 0, G.playerMaxHp);
+    setHpBar($("playerHpFill"), $("playerHpTxt"), G.playerHp, G.playerMaxHp);
+
+    if (isLastStage) {
+      title.textContent = "🏆 GAME CLEAR!";
+      title.className = "result-title win";
+      sub.textContent = `クッパを倒した！\nスコア: ${G.score} pt`;
+      healTxt.textContent = `+${heal} HP 回復！`;
+      btnNext.style.display = "none";
+      btnRestart.textContent = "▶ タイトルへ";
+      btnRestart.style.display = "block";
+    } else {
+      title.textContent = "✨ STAGE CLEAR!";
+      title.className = "result-title win";
+      sub.textContent = `${G.enemy.name} を倒した！\nスコア: +${G.enemy.reward} pt`;
+      healTxt.textContent = `+${heal} HP 回復！`;
+      btnNext.style.display = "block";
+      btnRestart.style.display = "none";
+    }
+  } else {
+    title.textContent = "💀 GAME OVER";
+    title.className = "result-title lose";
+    sub.textContent = `${G.enemy.name}にやられた…\nスコア: ${G.score} pt`;
+    healTxt.textContent = "";
+    btnNext.style.display = "none";
+    btnRestart.textContent = "▶ RETRY";
+    btnRestart.style.display = "block";
+  }
+
+  overlay.classList.add("active");
+}
+
+function nextStage() {
+  $("resultOverlay").classList.remove("active");
+  G.stage++;
+  loadStage(G.stage);
+}
+
+function goTitle() {
+  $("resultOverlay").classList.remove("active");
+  G.char = null;
+  buildCharGrid();
+  showScreen("titleScreen");
+}
+
+// ================================================================
+// STAT MODAL
+// ================================================================
+function openStatModal() {
+  const c = G.char;
+  if (!c) return;
+  const preview = $("statCharPreview");
+  preview.innerHTML = SPRITES[c.spriteKey];
+
+  const content = $("statContent");
+  const itemStatus = (key) => G.items[key] ? "<span style='color:#2ecc71'>あり</span>" : "<span style='color:#e74c3c'>使用済</span>";
+
+  content.innerHTML = `
+    <div class="stat-row"><span class="sl">NAME</span><span class="sv">${c.name}</span></div>
+    <div class="stat-row"><span class="sl">HP</span><span class="sv">${G.playerHp} / ${G.playerMaxHp}</span></div>
+    <div class="stat-row"><span class="sl">ATK</span><span class="sv">${c.atk}</span></div>
+    <div class="stat-row"><span class="sl">DEF</span><span class="sv">${c.def}</span></div>
+    <div class="stat-row"><span class="sl">LUCK</span><span class="sv">${c.luck}</span></div>
+    <div class="stat-row"><span class="sl">STAGE</span><span class="sv">${G.stage+1} / ${STAGE_SEQUENCE.length}</span></div>
+    <div class="stat-row"><span class="sl">SCORE</span><span class="sv">${G.score}</span></div>
+    <div class="stat-row"><span class="sl">🍄 キノコ</span><span class="sv">${itemStatus('mushroom')}</span></div>
+    <div class="stat-row"><span class="sl">⭐ スター</span><span class="sv">${itemStatus('star')}</span></div>
+    <div class="stat-row"><span class="sl">🌸 フラワー</span><span class="sv">${itemStatus('flower')}</span></div>
+    <div class="stat-row"><span class="sl">🐢 コウラ</span><span class="sv">${itemStatus('shell')}</span></div>
+  `;
+
+  $("statModal").classList.add("active");
+}
+
+function closeStatModal() {
+  $("statModal").classList.remove("active");
+}
+
+// ================================================================
+// INIT
+// ================================================================
+buildCharGrid();
+</script>
+</body>
+</html>
